@@ -21,22 +21,23 @@ export default function LoginForm() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    
+
     try {
       const authData = await pb.collection('users').authWithPassword(email, password);
-      
+
       toast({
         title: "Успешный вход",
         description: `Добро пожаловать, ${authData.record.display_name || authData.record.email}!`,
       });
-      
+
       // Сохраняем данные пользователя в localStorage для доступа на других страницах
       localStorage.setItem('user', JSON.stringify(authData.record));
-      
+
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      if (err.status === 400) {
+      const e = err as { status?: number };
+      if (e && e.status === 400) {
         setError("Неверный email или пароль");
       } else {
         setError("Произошла ошибка при входе");
@@ -90,8 +91,8 @@ export default function LoginForm() {
                 {error}
               </div>
             )}
-            <Button 
-              className="w-full h-11 mt-6 transition-smooth hover:scale-[0.98] active:scale-[0.96]" 
+            <Button
+              className="w-full h-11 mt-6 transition-smooth hover:scale-[0.98] active:scale-[0.96]"
               disabled={loading}
               type="submit"
             >

@@ -102,5 +102,9 @@ export default {
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		// ESM-friendly import for linter
+		// @ts-expect-error types may not be available
+		(await import("tailwindcss-animate")).default ?? (await import("tailwindcss-animate"))
+	],
 } satisfies Config;
