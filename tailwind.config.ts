@@ -103,8 +103,7 @@ export default {
 		}
 	},
 	plugins: [
-		// ESM-friendly import for linter
-		// @ts-expect-error types may not be available
-		(await import("tailwindcss-animate")).default ?? (await import("tailwindcss-animate"))
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		require("tailwindcss-animate")
 	],
 } satisfies Config;
