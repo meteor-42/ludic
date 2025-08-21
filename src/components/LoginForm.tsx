@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import PocketBase from "pocketbase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+
+const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
 
 export default function LoginForm() {
   const navigate = useNavigate();
@@ -20,20 +23,24 @@ export default function LoginForm() {
     setLoading(true);
     
     try {
-      // Симуляция аутентификации
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const authData = await pb.collection('users').authWithPassword(email, password);
       
-      if (email === "admin@example.com" && password === "password") {
-        toast({
-          title: "Успешный вход",
-          description: "Добро пожаловать в систему!",
-        });
-        navigate("/dashboard");
-      } else {
+      toast({
+        title: "Успешный вход",
+        description: `Добро пожаловать, ${authData.record.display_name || authData.record.email}!`,
+      });
+      
+      // Сохраняем данные пользователя в localStorage для доступа на других страницах
+      localStorage.setItem('user', JSON.stringify(authData.record));
+      
+      navigate("/dashboard");
+    } catch (err: any) {
+      console.error('Login error:', err);
+      if (err.status === 400) {
         setError("Неверный email или пароль");
+      } else {
+        setError("Произошла ошибка при входе");
       }
-    } catch (err: unknown) {
-      setError("Произошла ошибка при входе");
     } finally {
       setLoading(false);
     }
@@ -92,7 +99,7 @@ export default function LoginForm() {
             </Button>
             <div className="text-center mt-4">
               <p className="text-xs text-muted-foreground">
-                Демо: admin@example.com / password
+                Введите ваши учетные данные для входа
               </p>
             </div>
           </form>
