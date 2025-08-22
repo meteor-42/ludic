@@ -11,6 +11,45 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
+pb.autoCancellation(false);
+
+const formatMsk = (iso: string) => {
+  try {
+    const d = new Date(iso);
+    const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    const wd = weekdays[d.getDay()];
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${wd} ${dd}.${mm} ${hh}:${min} (МСК)`;
+  } catch {
+    return '';
+  }
+};
+
+const statusLabel = (s?: string) => {
+  switch ((s || '').toLowerCase()) {
+    case 'live':
+      return 'LIVE';
+    case 'completed':
+      return 'ЗАВЕРШЕНО';
+    case 'cancelled':
+      return 'ОТМЕНЕН';
+    case 'upcoming':
+    default:
+      return 'ОЖИДАЕТСЯ';
+  }
+};
+
+const statusClass = (s?: string) => {
+  const v = (s || '').toLowerCase();
+  if (v === 'live') return 'bg-red-50 text-red-700';
+  if (v === 'upcoming') return 'bg-emerald-50 text-emerald-700';
+  if (v === 'cancelled') return 'bg-rose-50 text-rose-700';
+  if (v === 'completed') return 'bg-slate-100 text-slate-700';
+  return 'bg-slate-100 text-slate-700';
+};
 
 type Match = {
   id: string;
@@ -43,13 +82,20 @@ type AuthUser = PBUser | null;
 export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser>(null);
-  const [activeTab, setActiveTab] = useState<string>("matches");
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [activeTab, setActiveTab] = useState<string>(() => localStorage.getItem('activeTab') || "matches");
+  const [bets, setBets] = useState<Record<string, Bet>>(() => {
+    try {
+      const raw = localStorage.getItem('bets');
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
   const [loading, setLoading] = useState<boolean>(true);
-  const [bets, setBets] = useState<Record<string, Bet>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [groups, setGroups] = useState<Record<string, Match[]>>({});
-  const [leaders, setLeaders] = useState<Array<{ user_id: string; points: number; user?: PBUser }>>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [leaders, setLeaders] = useState<Array<{ user_id: string; points: number }>>([]);
   const [leadersLoading, setLeadersLoading] = useState<boolean>(false);
 
   const loadUserBets = async (uid: string) => {
@@ -68,6 +114,7 @@ export default function Dashboard() {
         };
       }
       setBets(mapped);
+      localStorage.setItem('bets', JSON.stringify(mapped));
     } catch (e) {
       console.error(e);
     }
@@ -92,6 +139,10 @@ export default function Dashboard() {
   }, [navigate]);
 
   useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
     // Загружаем матчи, отсортированные по starts_at, только видимые
     const load = async () => {
       try {
@@ -102,6 +153,7 @@ export default function Dashboard() {
           filter: 'is_visible = true',
         });
         const items = list.items.slice().sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+        console.log('[matches] loaded:', items.length, items[0]);
         setMatches(items);
         // Группировка по лиге и туру (ключ: "Лига • Тур X")
         const g: Record<string, Match[]> = {};
@@ -112,9 +164,14 @@ export default function Dashboard() {
         }
         setGroups(g);
         toast?.success?.("Матчи загружены");
-      } catch (e) {
-        console.error(e);
-        toast?.error?.("Ошибка загрузки матчей");
+      } catch (e: unknown) {
+        const err = e as { name?: string };
+        if (err?.name === 'AbortError') {
+          console.warn('load matches aborted');
+        } else {
+          console.error(e);
+          toast?.error?.("Ошибка загрузки матчей");
+        }
       } finally {
         setLoading(false);
       }
@@ -126,7 +183,6 @@ export default function Dashboard() {
     const loadLeaders = async () => {
       try {
         setLeadersLoading(true);
-        // Грузим до 1000 ставок для агрегации (при необходимости сделаем пагинацию)
         const list = await pb.collection('bets').getList<Bet>(1, 1000, {});
         const agg = new Map<string, number>();
         for (const it of list.items) {
@@ -135,24 +191,17 @@ export default function Dashboard() {
           agg.set(uid, (agg.get(uid) || 0) + pts);
         }
         const entries = Array.from(agg.entries()).map(([user_id, points]) => ({ user_id, points }));
-        // сортировка по очкам по убыванию
         entries.sort((a, b) => b.points - a.points);
-        // подтянем пользователей (ограничим топ-100 для экономии запросов)
         const top = entries.slice(0, 100);
-        // пробуем одним запросом через expand если bets имела relation — у нас только id, поэтому дернем по одному
-        const withUsers: Array<{ user_id: string; points: number; user?: PBUser }> = [];
-        for (const row of top) {
-          try {
-            // коллекция пользователей называется users (standard PB)
-            const u = await pb.collection('users').getOne<PBUser>(row.user_id);
-            withUsers.push({ ...row, user: u });
-          } catch {
-            withUsers.push(row);
-          }
+        // Не запрашиваем users (403), показываем только id и очки
+        setLeaders(top);
+      } catch (e: unknown) {
+        const err = e as { name?: string };
+        if (err?.name === 'AbortError') {
+          console.warn('load leaders aborted');
+        } else {
+          console.error(e);
         }
-        setLeaders(withUsers);
-      } catch (e) {
-        console.error(e);
       } finally {
         setLeadersLoading(false);
       }
@@ -161,7 +210,7 @@ export default function Dashboard() {
   }, []);
 
   const handleLogout = () => {
-    // Очистка локальной авторизации
+    // Очистка локальной авторизации, но НЕ стираем ставки и активную вкладку
     pb.authStore.clear();
     localStorage.removeItem('user');
     navigate("/");
@@ -193,10 +242,23 @@ export default function Dashboard() {
           pick,
         },
       }));
+      localStorage.setItem('bets', JSON.stringify({
+        ...bets,
+        [match.id]: {
+          match_id: match.id,
+          user_id: uid,
+          pick,
+        }
+      }));
       toast?.success?.("Сохранено");
-    } catch (e) {
-      console.error(e);
-      toast?.error?.("Не удалось сохранить ставку");
+    } catch (e: unknown) {
+      const err = e as { name?: string };
+      if (err?.name === 'AbortError') {
+        console.warn('bet save aborted');
+      } else {
+        console.error(e);
+        toast?.error?.("Не удалось сохранить ставку");
+      }
     } finally {
       setSaving((s) => ({ ...s, [match.id]: false }));
     }
@@ -204,19 +266,11 @@ export default function Dashboard() {
 
   const Header = () => (
     <header className="flex items-center justify-between py-4">
-      <div className="text-xl font-semibold">Матчи</div>
+      <div className="text-xl font-semibold">Лудик</div>
       <div className="flex items-center gap-3">
-        <Button variant="ghost" onClick={() => setActiveTab('all-bets')} title="Все ставки">
-          <span className="i-lucide-list size-5" aria-hidden />
-          <span className="sr-only">Все ставки</span>
+        <Button variant="secondary" onClick={handleLogout} title="Выйти">
+          Выйти
         </Button>
-        <Button variant="ghost" onClick={handleLogout} title="Выйти">
-          <span className="i-lucide-log-out size-5" aria-hidden />
-          <span className="sr-only">Выйти</span>
-        </Button>
-        <Avatar>
-          <AvatarFallback>{(user?.display_name || user?.email || "U").slice(0,1).toUpperCase()}</AvatarFallback>
-        </Avatar>
       </div>
     </header>
   );
@@ -247,48 +301,51 @@ export default function Dashboard() {
 
   const MatchRow = ({ m }: { m: Match }) => {
     const selected = bets[m.id]?.pick;
-    const disabled = m.is_locked || m.status !== 'upcoming';
+    const disabled = (m.is_locked ?? false) || (m.status ? m.status !== 'upcoming' : false);
     const isSaving = !!saving[m.id];
     return (
       <Card className="shadow-minimal">
         <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">{m.league} • Тур {m.tour}</div>
-              <div className="font-medium">{m.home_team} — {m.away_team}</div>
-              <div className="text-xs text-muted-foreground">
-                {new Date(m.starts_at).toLocaleString()}
+          <div className="flex items-start justify-between gap-3">
+            <div className="w-28 shrink-0 text-xs text-muted-foreground flex flex-col gap-1 items-start justify-center">
+              <div>{formatMsk(m.starts_at)}</div>
+              {m.status && (
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-medium text-center",
+                  statusClass(m.status)
+                )}>{statusLabel(m.status)}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground truncate">Событие #{m.id}</span>
+                  <span className="h-4 w-px bg-border" aria-hidden></span>
+                  {(m.league || typeof m.tour === 'number') && (
+                    <span className="text-[11px] text-muted-foreground truncate">{m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}</span>
+                  )}
+                </div>
+                <div className="mt-1 font-medium line-clamp-3">
+                  {m.home_team} — {m.away_team}
+                </div>
+                {m.status !== 'upcoming' && (
+                  <div className="mt-1 text-xs text-muted-foreground">{m.home_score} — {m.away_score}</div>
+                )}
               </div>
-              {m.status !== 'upcoming' && (
-                <div className="text-xs text-muted-foreground">Счет: {m.home_score} — {m.away_score}</div>
-              )}
+              <div className="hidden sm:flex items-center gap-2 self-center">
+                {isSaving && (
+                  <div className="text-xs text-muted-foreground animate-pulse">Сохранение…</div>
+                )}
+                <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'H')} />
+                <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'D')} />
+                <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'A')} />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {isSaving && (
-                <div className="text-xs text-muted-foreground animate-pulse mr-2">Сохранение…</div>
-              )}
-              <Chip
-                label="Home"
-                odd={m.odd_home}
-                selected={selected === 'H'}
-                disabled={disabled || isSaving}
-                onClick={() => handlePick(m, 'H')}
-              />
-              <Chip
-                label="Draw"
-                odd={m.odd_draw}
-                selected={selected === 'D'}
-                disabled={disabled || isSaving}
-                onClick={() => handlePick(m, 'D')}
-              />
-              <Chip
-                label="Away"
-                odd={m.odd_away}
-                selected={selected === 'A'}
-                disabled={disabled || isSaving}
-                onClick={() => handlePick(m, 'A')}
-              />
-            </div>
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-2 sm:hidden">
+            <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'H')} />
+            <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'D')} />
+            <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'A')} />
           </div>
         </CardContent>
       </Card>
@@ -305,21 +362,22 @@ export default function Dashboard() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="matches">Матчи</TabsTrigger>
             <TabsTrigger value="leaders">Лидеры</TabsTrigger>
-            <TabsTrigger value="stats">Моя статистика</TabsTrigger>
+            <TabsTrigger value="all-bets">История</TabsTrigger>
           </TabsList>
 
           <TabsContent value="matches" className="mt-4">
             {loading ? (
               <div className="text-center text-muted-foreground py-8">Загрузка…</div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {Object.keys(groups).length === 0 && (
-                  <div className="text-center text-muted-foreground">Нет матчей</div>
+                  <div className="text-center text-muted-foreground">
+                    Нет матчей. Проверьте доступность PocketBase и поле is_visible в коллекции matches.
+                  </div>
                 )}
                 {Object.entries(groups).map(([groupTitle, arr]) => (
                   <div key={groupTitle} className="space-y-3">
-                    <div className="text-sm font-medium text-muted-foreground">{groupTitle}</div>
-                    {arr.map((m) => (
+                    {arr.map((m, idx) => (
                       <MatchRow key={m.id} m={m} />
                     ))}
                   </div>
@@ -352,10 +410,8 @@ export default function Dashboard() {
                         )}
                       </div>
                       <div>
-                        <div className="text-sm font-medium">
-                          {row.user?.display_name || row.user?.email || row.user_id}
-                        </div>
-                        <div className="text-xs text-muted-foreground">ID: {row.user_id}</div>
+                        <div className="text-sm font-medium">ID: {row.user_id}</div>
+                        <div className="text-xs text-muted-foreground">Пользователь</div>
                       </div>
                     </div>
                     <div className="text-sm font-semibold">{row.points}</div>
@@ -365,41 +421,54 @@ export default function Dashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="stats" className="mt-4">
-            <div className="text-muted-foreground">Личная статистика (подготовлено).</div>
+          <TabsContent value="all-bets" className="mt-4">
+            <div className="space-y-3">
+              {Object.values(bets).length === 0 ? (
+                <div className="text-muted-foreground">Пока нет ставок.</div>
+              ) : (
+                Object.values(bets).map((b) => {
+                  const m = matches.find(mm => mm.id === b.match_id);
+                  return (
+                    <Card key={b.match_id} className="shadow-minimal">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="w-28 shrink-0 text-xs text-muted-foreground flex flex-col gap-1 items-start justify-center">
+                            <div>{m ? formatMsk(m.starts_at) : ''}</div>
+                            {m?.status && (
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[10px] font-medium text-center",
+                                statusClass(m.status)
+                              )}>{statusLabel(m.status)}</span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground truncate">Событие #{m?.id}</span>
+                                <span className="h-4 w-px bg-border" aria-hidden></span>
+                                {(m?.league || typeof m?.tour === 'number') && (
+                                  <span className="text-[11px] text-muted-foreground truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
+                                )}
+                              </div>
+                              <div className="mt-1 font-medium line-clamp-3">
+                                {m?.home_team} — {m?.away_team}
+                              </div>
+                            </div>
+                            <div className="text-sm whitespace-nowrap self-center">
+                              <span className="px-2 py-1 rounded-md bg-secondary text-foreground">
+                                {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
           </TabsContent>
         </Tabs>
-
-        {activeTab === 'all-bets' && (
-          <div className="mt-6 space-y-3">
-            <div className="text-lg font-medium">Все ставки</div>
-            {Object.values(bets).length === 0 ? (
-              <div className="text-muted-foreground">Пока нет ставок.</div>
-            ) : (
-              Object.values(bets).map((b) => {
-                const m = matches.find(mm => mm.id === b.match_id);
-                return (
-                  <Card key={b.match_id} className="shadow-minimal">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-sm text-muted-foreground">{m?.league} • Тур {m?.tour}</div>
-                          <div className="font-medium">{m?.home_team} — {m?.away_team}</div>
-                        </div>
-                        <div className="text-right text-xs text-muted-foreground">
-                          <div>{m ? new Date(m.starts_at).toLocaleString() : ''}</div>
-                          <div>{m?.league} • Тур {m?.tour}</div>
-                          <div>Статус: {m?.status}</div>
-                        </div>
-                        <div className="text-sm">Выбор: {b.pick === 'H' ? 'Home' : b.pick === 'D' ? 'Draw' : 'Away'}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
