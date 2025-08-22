@@ -44,7 +44,7 @@ const statusLabel = (s?: string) => {
 
 const statusClass = (s?: string) => {
   const v = (s || '').toLowerCase();
-  if (v === 'live') return 'bg-red-50 text-red-700';
+  if (v === 'live') return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
   if (v === 'upcoming') return 'bg-emerald-50 text-emerald-700';
   if (v === 'cancelled') return 'bg-rose-50 text-rose-700';
   if (v === 'completed') return 'bg-slate-100 text-slate-700';
@@ -97,6 +97,7 @@ export default function Dashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [leaders, setLeaders] = useState<Array<{ user_id: string; points: number }>>([]);
   const [leadersLoading, setLeadersLoading] = useState<boolean>(false);
+  const [historyFilter, setHistoryFilter] = useState<string>("");
 
   const loadUserBets = async (uid: string) => {
     try {
@@ -131,10 +132,16 @@ export default function Dashboard() {
       const u = JSON.parse(userData) as PBUser;
       setUser(u);
       loadUserBets(u.id);
+      const name = u.display_name || u.email || 'Игрок';
+      toast.success(`Добро пожаловать, ${name}`, { description: 'Делайте ваши прогнозы.' , duration: 3000});
     } else {
       const rec = pb.authStore.record as unknown as PBUser | null;
       setUser(rec);
       if (rec?.id) loadUserBets(rec.id);
+      if (rec) {
+        const name = rec.display_name || rec.email || 'Игрок';
+        toast.success(`Добро пожаловать, ${name}`, { description: 'Делайте ваши прогнозы.', duration: 3000 });
+      }
     }
   }, [navigate]);
 
@@ -147,7 +154,7 @@ export default function Dashboard() {
     const load = async () => {
       try {
         setLoading(true);
-        toast?.message?.("Загрузка матчей…");
+        toast.success("Загрузка матчей…", { description: "Подтягиваем список матчей", duration: 2000 });
         const list = await pb.collection('matches').getList<Match>(1, 200, {
           sort: 'starts_at',
           filter: 'is_visible = true',
@@ -163,14 +170,14 @@ export default function Dashboard() {
           g[k].push(m);
         }
         setGroups(g);
-        toast?.success?.("Матчи загружены");
+        toast.success("Матчи загружены", { description: `Найдено: ${items.length}`, duration: 2500 });
       } catch (e: unknown) {
         const err = e as { name?: string };
         if (err?.name === 'AbortError') {
           console.warn('load matches aborted');
         } else {
           console.error(e);
-          toast?.error?.("Ошибка загрузки матчей");
+          toast.error("Ошибка загрузки матчей", { description: "Попробуйте обновить страницу позже", duration: 3500 });
         }
       } finally {
         setLoading(false);
@@ -250,14 +257,17 @@ export default function Dashboard() {
           pick,
         }
       }));
-      toast?.success?.("Сохранено");
+      const pickLabel = pick === 'H' ? 'П1' : pick === 'D' ? 'Х' : 'П2';
+      const odd = pick === 'H' ? match.odd_home : pick === 'D' ? match.odd_draw : match.odd_away;
+      const suffix = odd != null ? ` • ${pickLabel} (${odd.toFixed(2)})` : ` • ${pickLabel}`;
+      toast.success(`${match.home_team} — ${match.away_team}${suffix}`, { description: 'Ваш выбор учтен. Удачи.', duration: 2500 });
     } catch (e: unknown) {
       const err = e as { name?: string };
       if (err?.name === 'AbortError') {
         console.warn('bet save aborted');
       } else {
         console.error(e);
-        toast?.error?.("Не удалось сохранить ставку");
+        toast.error("Не удалось сохранить ставку", { description: "Повторите попытку через минуту", duration: 3500 });
       }
     } finally {
       setSaving((s) => ({ ...s, [match.id]: false }));
@@ -266,7 +276,10 @@ export default function Dashboard() {
 
   const Header = () => (
     <header className="flex items-center justify-between py-4">
-      <div className="text-xl font-semibold">Лудик</div>
+      <div>
+        <div className="text-xl font-semibold leading-tight">Лудик</div>
+        <div className="text-[11px] text-muted-foreground mt-0.5">Почувствуй Разницу</div>
+      </div>
       <div className="flex items-center gap-3">
         <Button variant="secondary" onClick={handleLogout} title="Выйти">
           Выйти
@@ -299,40 +312,48 @@ export default function Dashboard() {
     </button>
   );
 
-  const MatchRow = ({ m }: { m: Match }) => {
+  const MatchRow = ({ m, index }: { m: Match; index?: number }) => {
     const selected = bets[m.id]?.pick;
     const disabled = (m.is_locked ?? false) || (m.status ? m.status !== 'upcoming' : false);
     const isSaving = !!saving[m.id];
     return (
-      <Card className="shadow-minimal">
+      <Card className="shadow-minimal transition-colors hover:bg-muted/50 hover:border-muted">
         <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="w-28 shrink-0 text-xs text-muted-foreground flex flex-col gap-1 items-start justify-center">
-              <div>{formatMsk(m.starts_at)}</div>
-              {m.status && (
-                <span className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px] font-medium text-center",
-                  statusClass(m.status)
-                )}>{statusLabel(m.status)}</span>
+          <div className="flex items-stretch justify-between gap-3">
+            {/* Left ordinal badge */}
+            <div className="w-8 shrink-0 flex items-center justify-center">
+              {typeof index === 'number' && (
+                <span className="inline-flex h-6 min-w-6 px-2 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
+                  {index + 1}
+                </span>
               )}
             </div>
             <div className="flex-1 min-w-0 flex items-center gap-2">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground truncate">Событие #{m.id}</span>
-                  <span className="h-4 w-px bg-border" aria-hidden></span>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                   {(m.league || typeof m.tour === 'number') && (
-                    <span className="text-[11px] text-muted-foreground truncate">{m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}</span>
+                    <span className="truncate">{m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}</span>
+                  )}
+                  <span className="h-4 w-px bg-border" aria-hidden></span>
+                  <span className="truncate">Событие #{m.id}</span>
+                  <span className="h-4 w-px bg-border" aria-hidden></span>
+                  <span className="truncate">{formatMsk(m.starts_at)}</span>
+                </div>
+                <div className="mt-1 font-medium line-clamp-3 text-[13px] flex items-center gap-2">
+                  <span>{m.home_team} — {m.away_team}</span>
+                  {m.status && (
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-[10px] font-medium",
+                      statusClass(m.status)
+                    )}>{statusLabel(m.status)}</span>
                   )}
                 </div>
-                <div className="mt-1 font-medium line-clamp-3">
-                  {m.home_team} — {m.away_team}
-                </div>
-                {m.status !== 'upcoming' && (
-                  <div className="mt-1 text-xs text-muted-foreground">{m.home_score} — {m.away_score}</div>
-                )}
               </div>
-              <div className="hidden sm:flex items-center gap-2 self-center">
+              <div className="hidden sm:flex items-center gap-3 self-center">
+                {/* Score: show only for live or completed and when both present */}
+                {(['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number') && (
+                  <div className="text-sm text-muted-foreground tabular-nums">{m.home_score} — {m.away_score}</div>
+                )}
                 {isSaving && (
                   <div className="text-xs text-muted-foreground animate-pulse">Сохранение…</div>
                 )}
@@ -343,6 +364,9 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mt-2 grid grid-cols-3 gap-2 sm:hidden">
+            {(['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number') && (
+              <div className="col-span-3 text-center text-sm text-muted-foreground tabular-nums">{m.home_score} — {m.away_score}</div>
+            )}
             <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'H')} />
             <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'D')} />
             <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'A')} />
@@ -378,7 +402,7 @@ export default function Dashboard() {
                 {Object.entries(groups).map(([groupTitle, arr]) => (
                   <div key={groupTitle} className="space-y-3">
                     {arr.map((m, idx) => (
-                      <MatchRow key={m.id} m={m} />
+                      <MatchRow key={m.id} m={m} index={idx} />
                     ))}
                   </div>
                 ))}
@@ -422,49 +446,71 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="all-bets" className="mt-4">
+            <div className="mb-3">
+              <input
+                type="text"
+                value={historyFilter}
+                onChange={(e) => setHistoryFilter(e.target.value)}
+                placeholder="Поиск по командам или игрокам"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
             <div className="space-y-3">
               {Object.values(bets).length === 0 ? (
                 <div className="text-muted-foreground">Пока нет ставок.</div>
               ) : (
-                Object.values(bets).map((b) => {
-                  const m = matches.find(mm => mm.id === b.match_id);
-                  return (
-                    <Card key={b.match_id} className="shadow-minimal">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="w-28 shrink-0 text-xs text-muted-foreground flex flex-col gap-1 items-start justify-center">
-                            <div>{m ? formatMsk(m.starts_at) : ''}</div>
-                            {m?.status && (
-                              <span className={cn(
-                                "px-2 py-0.5 rounded-full text-[10px] font-medium text-center",
-                                statusClass(m.status)
-                              )}>{statusLabel(m.status)}</span>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0 flex items-center gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground truncate">Событие #{m?.id}</span>
-                                <span className="h-4 w-px bg-border" aria-hidden></span>
-                                {(m?.league || typeof m?.tour === 'number') && (
-                                  <span className="text-[11px] text-muted-foreground truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
-                                )}
+                Object.values(bets)
+                  .filter((b) => {
+                    if (!historyFilter) return true;
+                    const q = historyFilter.toLowerCase();
+                    const m = matches.find(mm => mm.id === b.match_id);
+                    const teamMatch = m ? (
+                      (m.home_team || '').toLowerCase().includes(q) ||
+                      (m.away_team || '').toLowerCase().includes(q) ||
+                      (m.league || '').toLowerCase().includes(q)
+                    ) : false;
+                    const userMatch = (b.user_id || '').toLowerCase().includes(q);
+                    return teamMatch || userMatch;
+                  })
+                  .map((b) => {
+                    const m = matches.find(mm => mm.id === b.match_id);
+                    return (
+                      <Card key={b.match_id} className="shadow-minimal">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0 flex items-center gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                  {(m?.league || typeof m?.tour === 'number') && (
+                                    <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
+                                  )}
+                                  <span className="h-4 w-px bg-border" aria-hidden></span>
+                                  <span className="truncate">Событие #{m?.id}</span>
+                                  <span className="h-4 w-px bg-border" aria-hidden></span>
+                                  <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
+                                </div>
+                                <div className="mt-1 font-medium line-clamp-3 text-[13px] flex items-center gap-2">
+                                  <span>{m?.home_team} — {m?.away_team}</span>
+                                  {m?.status && (
+                                    <span className={cn(
+                                      "px-2 py-0.5 rounded-full text-[10px] font-medium text-center",
+                                      statusClass(m?.status)
+                                    )}>{statusLabel(m?.status)}</span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="mt-1 font-medium line-clamp-3">
-                                {m?.home_team} — {m?.away_team}
+                              <div className="flex items-center gap-2 self-center whitespace-nowrap">
+                                <span className="px-2 py-1 rounded-md bg-secondary text-foreground text-sm">
+                                  {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">ID игрока: {b.user_id}</span>
                               </div>
                             </div>
-                            <div className="text-sm whitespace-nowrap self-center">
-                              <span className="px-2 py-1 rounded-md bg-secondary text-foreground">
-                                {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
-                              </span>
-                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
+                        </CardContent>
+                      </Card>
+                    );
+                  })
               )}
             </div>
           </TabsContent>
