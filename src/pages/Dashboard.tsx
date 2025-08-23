@@ -7,7 +7,7 @@ import PocketBase from "pocketbase";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { User, List, LogOut } from "lucide-react";
 
@@ -103,6 +103,8 @@ export default function Dashboard() {
   const [historyFilter, setHistoryFilter] = useState<string>("");
   const [historySortDesc, setHistorySortDesc] = useState<boolean>(true);
 
+  const { toast } = useToast();
+
   const loadUserBets = async (uid: string) => {
     try {
       // fetch all bets for this user
@@ -138,14 +140,14 @@ export default function Dashboard() {
       setUser(u);
       loadUserBets(u.id);
       const name = u.display_name || u.email || 'Игрок';
-      toast.success(`Добро пожаловать, ${name}`, { description: 'Делайте ваши прогнозы.' , duration: 3000});
+      toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default', icon: 'success' as any });
     } else {
       const rec = pb.authStore.record as unknown as PBUser | null;
       setUser(rec);
       if (rec?.id) loadUserBets(rec.id);
       if (rec) {
         const name = rec.display_name || rec.email || 'Игрок';
-        toast.success(`Добро пожаловать, ${name}`, { description: 'Делайте ваши прогнозы.', duration: 3000 });
+        toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default', icon: 'success' as any });
       }
     }
   }, [navigate]);
@@ -159,7 +161,7 @@ export default function Dashboard() {
     const load = async () => {
       try {
         setLoading(true);
-        toast.success("Загрузка матчей…", { description: "Подтягиваем список матчей", duration: 2000 });
+        toast({ title: "Загрузка матчей…", description: "Подтягиваем список матчей", duration: 2000, variant: 'default', icon: 'loading' as any });
         const list = await pb.collection('matches').getList<Match>(1, 200, {
           sort: 'starts_at',
           filter: 'is_visible = true',
@@ -175,14 +177,14 @@ export default function Dashboard() {
           g[k].push(m);
         }
         setGroups(g);
-        toast.success("Матчи загружены", { description: `Найдено: ${items.length}`, duration: 2500 });
+        toast({ title: "Матчи загружены", description: `Найдено: ${items.length}`, duration: 2500, variant: 'default', icon: 'success' as any });
       } catch (e: unknown) {
         const err = e as { name?: string };
         if (err?.name === 'AbortError') {
           console.warn('load matches aborted');
         } else {
           console.error(e);
-          toast.error("Ошибка загрузки матчей", { description: "Попробуйте обновить страницу позже", duration: 3500 });
+          toast({ variant: 'destructive', title: "Ошибка загрузки матчей", description: "Попробуйте обновить страницу позже", duration: 3500, icon: 'error' as any });
         }
       } finally {
         setLoading(false);
@@ -287,14 +289,14 @@ export default function Dashboard() {
       const pickLabel = pick === 'H' ? 'П1' : pick === 'D' ? 'Х' : 'П2';
       const odd = pick === 'H' ? match.odd_home : pick === 'D' ? match.odd_draw : match.odd_away;
       const suffix = odd != null ? ` • ${pickLabel} (${odd.toFixed(2)})` : ` • ${pickLabel}`;
-      toast.success(`${match.home_team} — ${match.away_team}${suffix}`, { description: 'Ваш выбор учтен. Удачи.', duration: 2500 });
+      toast({ title: `${match.home_team} — ${match.away_team}${suffix}`, description: 'Ваш выбор учтен. Удачи.', duration: 2500, icon: 'success' as any });
     } catch (e: unknown) {
       const err = e as { name?: string };
       if (err?.name === 'AbortError') {
         console.warn('bet save aborted');
       } else {
         console.error(e);
-        toast.error("Не удалось сохранить ставку", { description: "Повторите попытку через минуту", duration: 3500 });
+        toast({ variant: 'destructive', title: "Не удалось сохранить ставку", description: "Повторите попытку через минуту", duration: 3500, icon: 'error' as any });
       }
     } finally {
       setSaving((s) => ({ ...s, [match.id]: false }));
@@ -351,20 +353,20 @@ export default function Dashboard() {
     const disabled = (m.is_locked ?? false) || (m.status ? m.status !== 'upcoming' : false);
     const isSaving = !!saving[m.id];
     return (
-      <Card className="shadow-minimal transition-colors hover:bg-muted/50 hover:border-muted">
-        <CardContent className="p-4 min-h-[92px] flex items-stretch">
-          <div className="flex items-stretch justify-between gap-3 w-full">
+      <Card className="shadow-minimal transition-colors hover:bg-muted/50 hover:border-muted min-h-[96px] bg-orange-50">
+        <CardContent className="px-3 py-1.5 h-full flex items-stretch">
+          <div className="flex items-stretch justify-between gap-3 w-full bg-yellow-50">
             {/* Left ordinal badge */}
-            <div className="w-8 shrink-0 flex items-center justify-center">
+            <div className="w-8 shrink-0 flex items-center justify-center bg-green-100 border border-green-400 h-full px-2">
               {typeof index === 'number' && (
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
                   {index + 1}
                 </span>
               )}
             </div>
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <div className="flex-1 min-w-0 flex items-stretch gap-3 bg-blue-50 px-2 py-1.5">
+              <div className="flex-1 min-w-0 bg-purple-50 grid grid-rows-2 gap-1 px-2 py-1.5">
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-pink-100 border border-pink-400 min-h-[32px] px-2 py-1.5">
                   {(m.league || typeof m.tour === 'number') && (
                     <span className="truncate">{m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}</span>
                   )}
@@ -373,8 +375,8 @@ export default function Dashboard() {
                   <span className="h-4 w-px bg-border" aria-hidden></span>
                   <span className="truncate">{formatMsk(m.starts_at)}</span>
                 </div>
-                <div className="mt-1 font-medium line-clamp-3 text-[13px] flex items-center gap-2">
-                  <span>{m.home_team} — {m.away_team}</span>
+                <div className="font-medium text-[13px] flex items-center gap-2 min-h-[32px] bg-cyan-100 border border-cyan-400 px-2 py-1.5">
+                  <span className="line-clamp-2 leading-snug bg-cyan-200 px-1">{m.home_team} — {m.away_team}</span>
                   {m.status && (
                     <span className={cn(
                       "px-2 py-0.5 rounded-full text-[10px] font-medium",
@@ -383,7 +385,7 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-              <div className="hidden sm:flex items-center gap-3 self-center">
+              <div className="hidden sm:flex items-center gap-2 self-stretch bg-lime-100 border border-lime-400 h-full px-2">
                 {/* Score: show only for live or completed and when both present */}
                 {(['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number') && (
                   <div className="text-sm text-muted-foreground tabular-nums">{m.home_score} — {m.away_score}</div>
@@ -396,14 +398,6 @@ export default function Dashboard() {
                 <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'A')} />
               </div>
             </div>
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-2 sm:hidden">
-            {(['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number') && (
-              <div className="col-span-3 text-center text-sm text-muted-foreground tabular-nums">{m.home_score} — {m.away_score}</div>
-            )}
-            <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'H')} />
-            <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'D')} />
-            <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'A')} />
           </div>
         </CardContent>
       </Card>
@@ -450,19 +444,19 @@ export default function Dashboard() {
             ) : leaders.length === 0 ? (
               <div className="text-center text-muted-foreground">Пока нет данных по лидерам</div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {leaders.map((row, idx) => (
-                  <div key={row.user_id} className="flex items-stretch rounded-md border overflow-hidden min-h-[92px]">
-                    <div className="flex items-center gap-3 p-3 flex-1">
+                  <div key={row.user_id} className="flex items-stretch rounded-md border overflow-hidden min-h-[96px]">
+                    <div className="flex items-center gap-3 px-3 py-2 flex-1">
                       <div className="w-8 flex items-center justify-center">
                         <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">{idx + 1}</span>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">{row.name || `ID: ${row.user_id}`}</div>
+                        <div className="text-sm font-medium min-h-[32px] flex items-center"><span className="line-clamp-2 leading-snug">{row.name || `ID: ${row.user_id}`}</span></div>
                         <div className="text-xs text-muted-foreground">{row.totalBets} ставок • {row.guessedBets} угаданных • {row.totalBets > 0 ? ((row.guessedBets / row.totalBets) * 100).toFixed(1) : (0).toFixed(1)}% точности</div>
                       </div>
                     </div>
-                    <div className="w-28 shrink-0 grid place-items-center bg-muted border-l">
+                    <div className="w-24 shrink-0 grid place-items-center bg-muted/60 border-l">
                       <div className="text-xl font-bold leading-none">+{row.points}</div>
                     </div>
                   </div>
@@ -507,9 +501,9 @@ export default function Dashboard() {
                   .map((b, idx) => {
                     const m = matches.find(mm => mm.id === b.match_id);
                     return (
-                      <Card key={b.match_id} className="shadow-minimal">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-3">
+                      <Card key={b.match_id} className="shadow-minimal min-h-[96px]">
+                        <CardContent className="px-3 py-2 h-full">
+                          <div className="flex items-center justify-between gap-3 h-full">
                             <div className="w-8 shrink-0 flex items-center justify-center self-center">
                               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
                                 {idx + 1}
@@ -517,7 +511,7 @@ export default function Dashboard() {
                             </div>
                             <div className="flex-1 min-w-0 flex items-center gap-2">
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground leading-none">
                                   {(m?.league || typeof m?.tour === 'number') && (
                                     <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
                                   )}
@@ -526,8 +520,8 @@ export default function Dashboard() {
                                   <span className="h-4 w-px bg-border" aria-hidden></span>
                                   <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
                                 </div>
-                                <div className="mt-1 font-medium line-clamp-3 text-[13px] flex items-center gap-2">
-                                  <span>{m?.home_team} — {m?.away_team}</span>
+                                <div className="mt-1 font-medium text-[13px] flex items-center gap-2 min-h-[32px] leading-snug">
+                                  <span className="line-clamp-2 leading-snug">{m?.home_team} — {m?.away_team}</span>
                                   {m?.status && (
                                     <span className={cn(
                                       "px-2 py-0.5 rounded-full text-[10px] font-medium text-center",
