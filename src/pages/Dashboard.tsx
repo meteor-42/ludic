@@ -167,7 +167,6 @@ export default function Dashboard() {
           filter: 'is_visible = true',
         });
         const items = list.items.slice().sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
-        console.log('[matches] loaded:', items.length, items[0]);
         setMatches(items);
         // Группировка по лиге и туру (ключ: "Лига • Тур X")
         const g: Record<string, Match[]> = {};
@@ -353,50 +352,46 @@ export default function Dashboard() {
     const disabled = (m.is_locked ?? false) || (m.status ? m.status !== 'upcoming' : false);
     const isSaving = !!saving[m.id];
     return (
-      <Card className="shadow-minimal transition-colors hover:bg-muted/50 hover:border-muted min-h-[96px] bg-orange-50">
-        <CardContent className="px-3 py-1.5 h-full flex items-stretch">
-          <div className="flex items-stretch justify-between gap-3 w-full bg-yellow-50">
+      <Card className="transition-colors hover:bg-muted/50 hover:border-muted">
+        <CardContent className="px-3 py-2 h-full">
+          <div className="flex items-stretch justify-between gap-3 px-0 py-0">
             {/* Left ordinal badge */}
-            <div className="w-8 shrink-0 flex items-center justify-center bg-green-100 border border-green-400 h-full px-2">
+            <div className="w-8 shrink-0 grid place-items-center self-stretch">
               {typeof index === 'number' && (
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
+                <span className="inline-flex h-6 w-6 items-center justify-center  bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">
                   {index + 1}
                 </span>
               )}
             </div>
-            <div className="flex-1 min-w-0 flex items-stretch gap-3 bg-blue-50 px-2 py-1.5">
-              <div className="flex-1 min-w-0 bg-purple-50 grid grid-rows-2 gap-1 px-2 py-1.5">
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-pink-100 border border-pink-400 min-h-[32px] px-2 py-1.5">
-                  {(m.league || typeof m.tour === 'number') && (
-                    <span className="truncate">{m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}</span>
-                  )}
-                  <span className="h-4 w-px bg-border" aria-hidden></span>
-                  <span className="truncate">Событие #{m.id}</span>
-                  <span className="h-4 w-px bg-border" aria-hidden></span>
-                  <span className="truncate">{formatMsk(m.starts_at)}</span>
-                </div>
-                <div className="font-medium text-[13px] flex items-center gap-2 min-h-[32px] bg-cyan-100 border border-cyan-400 px-2 py-1.5">
-                  <span className="line-clamp-2 leading-snug bg-cyan-200 px-1">{m.home_team} — {m.away_team}</span>
-                  {m.status && (
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-full text-[10px] font-medium",
-                      statusClass(m.status)
-                    )}>{statusLabel(m.status)}</span>
-                  )}
-                </div>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 self-stretch bg-lime-100 border border-lime-400 h-full px-2">
-                {/* Score: show only for live or completed and when both present */}
-                {(['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number') && (
-                  <div className="text-sm text-muted-foreground tabular-nums">{m.home_score} — {m.away_score}</div>
+            {/* Center stacked info */}
+            <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
+              <div className="flex items-center gap-2 px-2 py-1 text-[11px] leading-tight text-muted-foreground ">
+                {(m.league || typeof m.tour === 'number') && (
+                  <span className="truncate">{m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}</span>
                 )}
-                {isSaving && (
-                  <div className="text-xs text-muted-foreground animate-pulse">Сохранение…</div>
-                )}
-                <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'H')} />
-                <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'D')} />
-                <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'A')} />
+                <span className="h-4 w-px bg-border" aria-hidden></span>
+                <span className="truncate">Событие #{m.id}</span>
+                <span className="h-4 w-px bg-border" aria-hidden></span>
+                <span className="truncate">{formatMsk(m.starts_at)}</span>
               </div>
+              <div className="font-medium text-sm flex items-center gap-2  px-2 py-1 leading-tight">
+                <span className="truncate leading-tight">{m.home_team} — {m.away_team}</span>
+                {m.status && (
+                  <span className={cn(
+                    "px-2 py-0.5 text-[10px] font-medium",
+                    statusClass(m.status)
+                  )}>{statusLabel(m.status)}</span>
+                )}
+              </div>
+            </div>
+            {/* Right bets/results */}
+            <div className="shrink-0 flex items-center gap-2 self-stretch whitespace-nowrap  px-2 py-1">
+              {(['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number') && (
+                <span className="text-sm text-muted-foreground tabular-nums">{m.home_score} — {m.away_score}</span>
+              )}
+              <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'H')} />
+              <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'D')} />
+              <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'A')} />
             </div>
           </div>
         </CardContent>
@@ -419,9 +414,9 @@ export default function Dashboard() {
 
           <TabsContent value="matches" className="mt-4">
             {loading ? (
-              <div className="text-center text-muted-foreground py-8">Загрузка…</div>
+              <div className="text-center text-muted-foreground py-6">Загрузка…</div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {Object.keys(groups).length === 0 && (
                   <div className="text-center text-muted-foreground">
                     Нет матчей. Проверьте доступность PocketBase и поле is_visible в коллекции matches.
@@ -444,20 +439,26 @@ export default function Dashboard() {
             ) : leaders.length === 0 ? (
               <div className="text-center text-muted-foreground">Пока нет данных по лидерам</div>
             ) : (
-              <div className="space-y-1">
+              <div className="space-y-3">
                 {leaders.map((row, idx) => (
-                  <div key={row.user_id} className="flex items-stretch rounded-md border overflow-hidden min-h-[96px]">
-                    <div className="flex items-center gap-3 px-3 py-2 flex-1">
-                      <div className="w-8 flex items-center justify-center">
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">{idx + 1}</span>
+                  <div key={row.user_id} className="flex items-stretch border overflow-hidden">
+                    <div className="flex items-stretch gap-3 w-full px-3 py-2">
+                      <div className="w-8 shrink-0 grid place-items-center self-stretch">
+                        <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">{idx + 1}</span>
                       </div>
-                      <div>
-                        <div className="text-sm font-medium min-h-[32px] flex items-center"><span className="line-clamp-2 leading-snug">{row.name || `ID: ${row.user_id}`}</span></div>
-                        <div className="text-xs text-muted-foreground">{row.totalBets} ставок • {row.guessedBets} угаданных • {row.totalBets > 0 ? ((row.guessedBets / row.totalBets) * 100).toFixed(1) : (0).toFixed(1)}% точности</div>
+                      <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
+                        <div className="flex items-center gap-2 px-2 py-1 text-[11px] leading-tight text-muted-foreground">
+                          <span className="truncate">Игрок</span>
+                          <span className="h-4 w-px bg-border" aria-hidden></span>
+                          <span className="truncate">Всего ставок: {row.totalBets}</span>
+                        </div>
+                        <div className="font-medium text-sm flex items-center gap-2  px-2 py-1 leading-tight">
+                          <span className="truncate">{row.name || `ID: ${row.user_id}`}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="w-24 shrink-0 grid place-items-center bg-muted/60 border-l">
-                      <div className="text-xl font-bold leading-none">+{row.points}</div>
+                      <div className="w-24 shrink-0 grid place-items-center  px-2 py-1">
+                        <div className="text-md  leading-none">{row.points}</div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -501,46 +502,44 @@ export default function Dashboard() {
                   .map((b, idx) => {
                     const m = matches.find(mm => mm.id === b.match_id);
                     return (
-                      <Card key={b.match_id} className="shadow-minimal min-h-[96px]">
+                      <Card key={b.match_id} className="">
                         <CardContent className="px-3 py-2 h-full">
-                          <div className="flex items-center justify-between gap-3 h-full">
-                            <div className="w-8 shrink-0 flex items-center justify-center self-center">
-                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
+                          <div className="flex items-stretch justify-between gap-3">
+                            <div className="w-8 shrink-0 grid place-items-center self-stretch  ">
+                              <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">
                                 {idx + 1}
                               </span>
                             </div>
-                            <div className="flex-1 min-w-0 flex items-center gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground leading-none">
-                                  {(m?.league || typeof m?.tour === 'number') && (
-                                    <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
-                                  )}
-                                  <span className="h-4 w-px bg-border" aria-hidden></span>
-                                  <span className="truncate">Ставка #{b.id || '—'}</span>
-                                  <span className="h-4 w-px bg-border" aria-hidden></span>
-                                  <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
-                                </div>
-                                <div className="mt-1 font-medium text-[13px] flex items-center gap-2 min-h-[32px] leading-snug">
-                                  <span className="line-clamp-2 leading-snug">{m?.home_team} — {m?.away_team}</span>
-                                  {m?.status && (
-                                    <span className={cn(
-                                      "px-2 py-0.5 rounded-full text-[10px] font-medium text-center",
-                                      statusClass(m?.status)
-                                    )}>{statusLabel(m?.status)}</span>
-                                  )}
-                                  {typeof b.points_earned === 'number' && b.points_earned > 0 && (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-black">Очки: +{b.points_earned}</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 self-center whitespace-nowrap">
-                                {(['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number') && (
-                                  <span className="text-sm text-muted-foreground tabular-nums">{m?.home_score} — {m?.away_score}</span>
+                            <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
+                              <div className="flex items-center gap-2 px-2 py-1 text-[11px] leading-tight text-muted-foreground">
+                                {(m?.league || typeof m?.tour === 'number') && (
+                                  <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
                                 )}
-                                <span className="px-2 py-1 rounded-md bg-secondary text-foreground text-sm">
-                                  {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
-                                </span>
+                                <span className="h-4 w-px bg-border" aria-hidden></span>
+                                <span className="truncate">Ставка #{b.id || '—'}</span>
+                                <span className="h-4 w-px bg-border" aria-hidden></span>
+                                <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
                               </div>
+                              <div className="font-medium text-sm flex items-center gap-2 px-2 py-1 leading-tight">
+                                <span className="truncate leading-tight">{m?.home_team} — {m?.away_team}</span>
+                                {m?.status && (
+                                  <span className={cn(
+                                    "px-2 py-0.5 text-[10px] font-medium text-center",
+                                    statusClass(m?.status)
+                                  )}>{statusLabel(m?.status)}</span>
+                                )}
+                                {typeof b.points_earned === 'number' && b.points_earned > 0 && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-black">Очки: +{b.points_earned}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 self-stretch whitespace-nowrap px-2 py-1">
+                              {(['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number') && (
+                                <span className="text-sm text-muted-foreground tabular-nums">{m?.home_score} — {m?.away_score}</span>
+                              )}
+                              <span className="px-2 py-1 bg-secondary text-foreground text-sm">
+                                {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
+                              </span>
                             </div>
                           </div>
                         </CardContent>
