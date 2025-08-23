@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { User, List, LogOut } from "lucide-react";
 
 const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
 pb.autoCancellation(false);
@@ -20,9 +21,9 @@ const formatMsk = (iso: string) => {
     const wd = weekdays[d.getDay()];
     const dd = String(d.getDate()).padStart(2, '0');
     const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const hh = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    return `${wd} ${dd}.${mm} ${hh}:${min} (МСК)`;
+    const hh = String(d.getUTCHours()).padStart(2, '0');
+    const min = String(d.getUTCMinutes()).padStart(2, '0');
+    return `${wd} ${dd}.${mm} ${hh}:${min} (UTC)`;
   } catch {
     return '';
   }
@@ -69,13 +70,15 @@ type Match = {
 };
 
 type Bet = {
+  id: string; // PB record id
   match_id: string;
   user_id: string;
   pick: "H" | "D" | "A";
   points_earned?: number;
 };
 
-type PBUser = { id: string; email?: string; display_name?: string };
+type PBUser = { id: string; email?: string; display_name?: string; displayed_name?: string };
+type PBUserRecord = { id: string; email?: string; display_name?: string; displayed_name?: string };
 
 type AuthUser = PBUser | null;
 
@@ -95,9 +98,10 @@ export default function Dashboard() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [groups, setGroups] = useState<Record<string, Match[]>>({});
   const [matches, setMatches] = useState<Match[]>([]);
-  const [leaders, setLeaders] = useState<Array<{ user_id: string; points: number }>>([]);
+  const [leaders, setLeaders] = useState<Array<{ user_id: string; points: number; name: string; totalBets: number; guessedBets: number }>>([]);
   const [leadersLoading, setLeadersLoading] = useState<boolean>(false);
   const [historyFilter, setHistoryFilter] = useState<string>("");
+  const [historySortDesc, setHistorySortDesc] = useState<boolean>(true);
 
   const loadUserBets = async (uid: string) => {
     try {
@@ -106,12 +110,13 @@ export default function Dashboard() {
         filter: `user_id = "${uid}"`,
       });
       const mapped: Record<string, Bet> = {};
-      for (const it of list.items) {
+      for (const it of list.items as any[]) {
         if (it.match_id) mapped[it.match_id] = {
-          match_id: it.match_id,
-          user_id: it.user_id,
-          pick: it.pick,
-          points_earned: it.points_earned,
+          id: it.id as string,
+          match_id: it.match_id as string,
+          user_id: it.user_id as string,
+          pick: it.pick as "H" | "D" | "A",
+          points_earned: it.points_earned as number | undefined,
         };
       }
       setBets(mapped);
@@ -190,18 +195,28 @@ export default function Dashboard() {
     const loadLeaders = async () => {
       try {
         setLeadersLoading(true);
-        const list = await pb.collection('bets').getList<Bet>(1, 1000, {});
-        const agg = new Map<string, number>();
-        for (const it of list.items) {
+        const betsList = await pb.collection('bets').getList<Bet>(1, 1000, {});
+        const aggPoints = new Map<string, number>();
+        const aggTotal = new Map<string, number>();
+        const aggGuessed = new Map<string, number>();
+        for (const it of betsList.items) {
           const uid = it.user_id as string;
           const pts = Number(it.points_earned || 0);
-          agg.set(uid, (agg.get(uid) || 0) + pts);
+          aggPoints.set(uid, (aggPoints.get(uid) || 0) + pts);
+          aggTotal.set(uid, (aggTotal.get(uid) || 0) + 1);
+          if (pts > 0) aggGuessed.set(uid, (aggGuessed.get(uid) || 0) + 1);
         }
-        const entries = Array.from(agg.entries()).map(([user_id, points]) => ({ user_id, points }));
-        entries.sort((a, b) => b.points - a.points);
-        const top = entries.slice(0, 100);
-        // Не запрашиваем users (403), показываем только id и очки
-        setLeaders(top);
+        // load all users and merge, show 0 points if absent
+        const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
+        const merged = usersList.items.map((u) => ({
+          user_id: u.id,
+          points: aggPoints.get(u.id) || 0,
+          name: (u.display_name || u.displayed_name || '').trim() || `ID: ${u.id}`,
+          totalBets: aggTotal.get(u.id) || 0,
+          guessedBets: aggGuessed.get(u.id) || 0,
+        }));
+        merged.sort((a, b) => b.points - a.points);
+        setLeaders(merged);
       } catch (e: unknown) {
         const err = e as { name?: string };
         if (err?.name === 'AbortError') {
@@ -234,29 +249,41 @@ export default function Dashboard() {
         // first, find record id
         const found: { id: string } = await pb.collection('bets').getFirstListItem(`user_id = "${uid}" && match_id = "${match.id}"`);
         await pb.collection('bets').update(found.id as string, { pick });
+        // persist id locally
+        setBets((prev) => ({
+          ...prev,
+          [match.id]: { ...(prev[match.id] || {} as any), id: found.id, match_id: match.id, user_id: uid, pick },
+        }));
+        localStorage.setItem('bets', JSON.stringify({
+          ...bets,
+          [match.id]: { ...(bets[match.id] || {} as any), id: found.id, match_id: match.id, user_id: uid, pick },
+        }));
       } else {
-        await pb.collection('bets').create({
+        const created = await pb.collection('bets').create({
           match_id: match.id,
           user_id: uid,
           pick,
         });
+        // persist id locally
+        setBets((prev) => ({
+          ...prev,
+          [match.id]: {
+            id: (created as any)?.id || "",
+            match_id: match.id,
+            user_id: uid,
+            pick,
+          },
+        }));
+        localStorage.setItem('bets', JSON.stringify({
+          ...bets,
+          [match.id]: {
+            id: (created as any)?.id || "",
+            match_id: match.id,
+            user_id: uid,
+            pick,
+          }
+        }));
       }
-      setBets((prev) => ({
-        ...prev,
-        [match.id]: {
-          match_id: match.id,
-          user_id: uid,
-          pick,
-        },
-      }));
-      localStorage.setItem('bets', JSON.stringify({
-        ...bets,
-        [match.id]: {
-          match_id: match.id,
-          user_id: uid,
-          pick,
-        }
-      }));
       const pickLabel = pick === 'H' ? 'П1' : pick === 'D' ? 'Х' : 'П2';
       const odd = pick === 'H' ? match.odd_home : pick === 'D' ? match.odd_draw : match.odd_away;
       const suffix = odd != null ? ` • ${pickLabel} (${odd.toFixed(2)})` : ` • ${pickLabel}`;
@@ -276,13 +303,20 @@ export default function Dashboard() {
 
   const Header = () => (
     <header className="flex items-center justify-between py-4">
-      <div>
-        <div className="text-xl font-semibold leading-tight">Лудик</div>
-        <div className="text-[11px] text-muted-foreground mt-0.5">Почувствуй Разницу</div>
+      <div className="flex items-center gap-3">
+        <span className="inline-flex items-center px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-foreground text-background border border-foreground [clip-path:polygon(6px_0,100%_0,100%_calc(100%-6px),calc(100%-6px)_100%,0_100%,0_6px)]">
+          чувствуй разницу
+        </span>
       </div>
       <div className="flex items-center gap-3">
-        <Button variant="secondary" onClick={handleLogout} title="Выйти">
-          Выйти
+        <Button variant="ghost" size="icon" title="Профиль">
+          <User className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="icon" title="Список">
+          <List className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={handleLogout} title="Выйти">
+          <LogOut className="h-5 w-5" />
         </Button>
       </div>
     </header>
@@ -318,12 +352,12 @@ export default function Dashboard() {
     const isSaving = !!saving[m.id];
     return (
       <Card className="shadow-minimal transition-colors hover:bg-muted/50 hover:border-muted">
-        <CardContent className="p-4">
-          <div className="flex items-stretch justify-between gap-3">
+        <CardContent className="p-4 min-h-[92px] flex items-stretch">
+          <div className="flex items-stretch justify-between gap-3 w-full">
             {/* Left ordinal badge */}
             <div className="w-8 shrink-0 flex items-center justify-center">
               {typeof index === 'number' && (
-                <span className="inline-flex h-6 min-w-6 px-2 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
                   {index + 1}
                 </span>
               )}
@@ -418,27 +452,19 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-2">
                 {leaders.map((row, idx) => (
-                  <div key={row.user_id} className="flex items-center justify-between rounded-md border p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 text-center">
-                        {idx < 3 ? (
-                          idx === 0 ? (
-                            <span title="1 место" className="i-lucide-crown text-yellow-500" />
-                          ) : idx === 1 ? (
-                            <span title="2 место" className="i-lucide-crown text-gray-400" />
-                          ) : (
-                            <span title="3 место" className="i-lucide-crown text-amber-600" />
-                          )
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{idx + 1}</span>
-                        )}
+                  <div key={row.user_id} className="flex items-stretch rounded-md border overflow-hidden min-h-[92px]">
+                    <div className="flex items-center gap-3 p-3 flex-1">
+                      <div className="w-8 flex items-center justify-center">
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">{idx + 1}</span>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">ID: {row.user_id}</div>
-                        <div className="text-xs text-muted-foreground">Пользователь</div>
+                        <div className="text-sm font-medium">{row.name || `ID: ${row.user_id}`}</div>
+                        <div className="text-xs text-muted-foreground">{row.totalBets} ставок • {row.guessedBets} угаданных • {row.totalBets > 0 ? ((row.guessedBets / row.totalBets) * 100).toFixed(1) : (0).toFixed(1)}% точности</div>
                       </div>
                     </div>
-                    <div className="text-sm font-semibold">{row.points}</div>
+                    <div className="w-28 shrink-0 grid place-items-center bg-muted border-l">
+                      <div className="text-xl font-bold leading-none">+{row.points}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -451,7 +477,7 @@ export default function Dashboard() {
                 type="text"
                 value={historyFilter}
                 onChange={(e) => setHistoryFilter(e.target.value)}
-                placeholder="Поиск по командам или игрокам"
+                placeholder="Поиск по командам"
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -469,15 +495,26 @@ export default function Dashboard() {
                       (m.away_team || '').toLowerCase().includes(q) ||
                       (m.league || '').toLowerCase().includes(q)
                     ) : false;
-                    const userMatch = (b.user_id || '').toLowerCase().includes(q);
-                    return teamMatch || userMatch;
+                    return teamMatch; // убрали поиск по игрокам
                   })
-                  .map((b) => {
+                  .sort((a, b) => {
+                    const ma = matches.find(mm => mm.id === a.match_id);
+                    const mb = matches.find(mm => mm.id === b.match_id);
+                    const da = ma ? new Date(ma.starts_at).getTime() : 0;
+                    const db = mb ? new Date(mb.starts_at).getTime() : 0;
+                    return historySortDesc ? db - da : da - db; // Последняя дата сверху
+                  })
+                  .map((b, idx) => {
                     const m = matches.find(mm => mm.id === b.match_id);
                     return (
                       <Card key={b.match_id} className="shadow-minimal">
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-3">
+                            <div className="w-8 shrink-0 flex items-center justify-center self-center">
+                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-[11px] font-medium">
+                                {idx + 1}
+                              </span>
+                            </div>
                             <div className="flex-1 min-w-0 flex items-center gap-2">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -485,7 +522,7 @@ export default function Dashboard() {
                                     <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
                                   )}
                                   <span className="h-4 w-px bg-border" aria-hidden></span>
-                                  <span className="truncate">Событие #{m?.id}</span>
+                                  <span className="truncate">Ставка #{b.id || '—'}</span>
                                   <span className="h-4 w-px bg-border" aria-hidden></span>
                                   <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
                                 </div>
@@ -497,13 +534,18 @@ export default function Dashboard() {
                                       statusClass(m?.status)
                                     )}>{statusLabel(m?.status)}</span>
                                   )}
+                                  {typeof b.points_earned === 'number' && b.points_earned > 0 && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-black">Очки: +{b.points_earned}</span>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 self-center whitespace-nowrap">
+                                {(['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number') && (
+                                  <span className="text-sm text-muted-foreground tabular-nums">{m?.home_score} — {m?.away_score}</span>
+                                )}
                                 <span className="px-2 py-1 rounded-md bg-secondary text-foreground text-sm">
                                   {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
                                 </span>
-                                <span className="text-[11px] text-muted-foreground">ID игрока: {b.user_id}</span>
                               </div>
                             </div>
                           </div>
