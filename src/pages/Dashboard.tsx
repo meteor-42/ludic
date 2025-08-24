@@ -74,12 +74,11 @@ type Bet = {
   match_id: string;
   user_id: string;
   pick: "H" | "D" | "A";
-  points_earned?: number;
+  points?: number;
 };
 
 type PBUser = { id: string; email?: string; display_name?: string; displayed_name?: string };
 type PBUserRecord = { id: string; email?: string; display_name?: string; displayed_name?: string };
-
 type AuthUser = PBUser | null;
 
 export default function Dashboard() {
@@ -118,7 +117,7 @@ export default function Dashboard() {
           match_id: it.match_id as string,
           user_id: it.user_id as string,
           pick: it.pick as "H" | "D" | "A",
-          points_earned: it.points_earned as number | undefined,
+          points: it.points as number | undefined,
         };
       }
       setBets(mapped);
@@ -202,7 +201,7 @@ export default function Dashboard() {
         const aggGuessed = new Map<string, number>();
         for (const it of betsList.items) {
           const uid = it.user_id as string;
-          const pts = Number(it.points_earned || 0);
+          const pts = Number(it.points || 0);
           aggPoints.set(uid, (aggPoints.get(uid) || 0) + pts);
           aggTotal.set(uid, (aggTotal.get(uid) || 0) + 1);
           if (pts > 0) aggGuessed.set(uid, (aggGuessed.get(uid) || 0) + 1);
@@ -335,14 +334,14 @@ export default function Dashboard() {
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "px-3 py-1.5 rounded-md border text-sm transition-colors",
+        "px-2 py-1 rounded-md border text-xs transition-colors h-7 flex items-center justify-center",
         selected ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted border-border",
         disabled && "opacity-50 cursor-not-allowed"
       )}
     >
       <span>{label}</span>
       {odd != null && (
-        <span className="ml-2 text-xs text-muted-foreground">{odd.toFixed(2)}</span>
+        <span className="ml-1 text-[10px] text-muted-foreground">{odd.toFixed(2)}</span>
       )}
     </button>
   );
@@ -352,7 +351,7 @@ export default function Dashboard() {
     const disabled = (m.is_locked ?? false) || (m.status ? m.status !== 'upcoming' : false);
     const isSaving = !!saving[m.id];
     return (
-      <Card className="transition-colors hover:bg-muted/50 hover:border-muted">
+      <Card className="transition-colors hover:bg-muted/50">
         <CardContent className="px-3 py-2 h-full">
           <div className="flex items-stretch justify-between gap-3 px-0 py-0">
             {/* Left ordinal badge */}
@@ -365,7 +364,7 @@ export default function Dashboard() {
             </div>
             {/* Center stacked info */}
             <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
-              <div className="flex items-center gap-2 px-2 py-1 text-[11px] leading-tight text-muted-foreground ">
+              <div className="flex items-center gap-2 px-1 py-0 text-[11px] leading-tight text-muted-foreground">
                 {(m.league || typeof m.tour === 'number') && (
                   <span className="truncate">{m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}</span>
                 )}
@@ -374,7 +373,7 @@ export default function Dashboard() {
                 <span className="h-4 w-px bg-border" aria-hidden></span>
                 <span className="truncate">{formatMsk(m.starts_at)}</span>
               </div>
-              <div className="font-medium text-sm flex items-center gap-2  px-2 py-1 leading-tight">
+              <div className="font-medium text-sm flex items-center gap-2 px-1 py-0 leading-tight">
                 <span className="truncate leading-tight">{m.home_team} — {m.away_team}</span>
                 {m.status && (
                   <span className={cn(
@@ -385,9 +384,9 @@ export default function Dashboard() {
               </div>
             </div>
             {/* Right bets/results */}
-            <div className="shrink-0 flex items-center gap-2 self-stretch whitespace-nowrap  px-2 py-1">
+            <div className="shrink-0 flex items-center gap-1 self-stretch whitespace-nowrap">
               {(['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number') && (
-                <span className="text-sm text-muted-foreground tabular-nums">{m.home_score} — {m.away_score}</span>
+                <span className="text-xs text-muted-foreground tabular-nums mr-1">{m.home_score} — {m.away_score}</span>
               )}
               <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'H')} />
               <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'D')} />
@@ -398,6 +397,76 @@ export default function Dashboard() {
       </Card>
     );
   };
+
+  const LeaderRow = ({ row, index }: { row: { user_id: string; points: number; name: string; totalBets: number; guessedBets: number }; index: number }) => (
+    <Card className="transition-colors hover:bg-muted/50">
+      <CardContent className="px-3 py-2">
+        <div className="flex items-stretch gap-3 w-full">
+          <div className="w-8 shrink-0 grid place-items-center self-stretch">
+            <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">{index + 1}</span>
+          </div>
+          <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
+            <div className="flex items-center gap-2 px-1 py-0 text-[11px] leading-tight text-muted-foreground">
+              <span className="truncate">Ставок: {row.totalBets}</span>
+              <span className="h-4 w-px bg-border" aria-hidden></span>
+              <span className="truncate">Верных: {row.guessedBets}</span>
+            </div>
+            <div className="font-medium text-sm flex items-center gap-2 px-1 py-0 leading-tight">
+              <span className="truncate">{row.name || `ID: ${row.user_id}`}</span>
+            </div>
+          </div>
+          <div className="w-16 shrink-0 grid place-items-center">
+            <div className="text-sm font-medium leading-none">{row.points}</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const BetRow = ({ b, index, m }: { b: Bet; index: number; m?: Match }) => (
+    <Card key={b.match_id} className="transition-colors hover:bg-muted/50">
+      <CardContent className="px-3 py-2">
+        <div className="flex items-stretch justify-between gap-3">
+          <div className="w-8 shrink-0 grid place-items-center self-stretch">
+            <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">
+              {index + 1}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
+            <div className="flex items-center gap-2 px-1 py-0 text-[11px] leading-tight text-muted-foreground">
+              {(m?.league || typeof m?.tour === 'number') && (
+                <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
+              )}
+              <span className="h-4 w-px bg-border" aria-hidden></span>
+              <span className="truncate">Ставка #{b.id || '—'}</span>
+              <span className="h-4 w-px bg-border" aria-hidden></span>
+              <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
+            </div>
+            <div className="font-medium text-sm flex items-center gap-2 px-1 py-0 leading-tight">
+              <span className="truncate leading-tight">{m?.home_team} — {m?.away_team}</span>
+              {m?.status && (
+                <span className={cn(
+                  "px-2 py-0.5 text-[10px] font-medium text-center",
+                  statusClass(m?.status)
+                )}>{statusLabel(m?.status)}</span>
+              )}
+              {typeof b.points === 'number' && b.points > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-black">+{b.points}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 self-stretch whitespace-nowrap">
+            {(['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number') && (
+              <span className="text-xs text-muted-foreground tabular-nums mr-1">{m?.home_score} — {m?.away_score}</span>
+            )}
+            <span className="px-2 py-1 bg-secondary text-foreground text-xs h-7 flex items-center justify-center">
+              {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
+            </span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-subtle p-4">
@@ -414,13 +483,19 @@ export default function Dashboard() {
 
           <TabsContent value="matches" className="mt-4">
             {loading ? (
-              <div className="text-center text-muted-foreground py-6">Загрузка…</div>
+              <Card>
+                <CardContent className="text-center text-muted-foreground py-6">
+                  Загрузка…
+                </CardContent>
+              </Card>
             ) : (
               <div className="space-y-3">
                 {Object.keys(groups).length === 0 && (
-                  <div className="text-center text-muted-foreground">
-                    Нет матчей. Проверьте доступность PocketBase и поле is_visible в коллекции matches.
-                  </div>
+                  <Card>
+                    <CardContent className="text-center text-muted-foreground py-6">
+                      Нет матчей. Проверьте доступность PocketBase и поле is_visible в коллекции matches.
+                    </CardContent>
+                  </Card>
                 )}
                 {Object.entries(groups).map(([groupTitle, arr]) => (
                   <div key={groupTitle} className="space-y-3">
@@ -435,32 +510,21 @@ export default function Dashboard() {
 
           <TabsContent value="leaders" className="mt-4">
             {leadersLoading ? (
-              <div className="text-center text-muted-foreground py-8">Загрузка лидеров…</div>
+              <Card>
+                <CardContent className="text-center text-muted-foreground py-8">
+                  Загрузка лидеров…
+                </CardContent>
+              </Card>
             ) : leaders.length === 0 ? (
-              <div className="text-center text-muted-foreground">Пока нет данных по лидерам</div>
+              <Card>
+                <CardContent className="text-center text-muted-foreground py-6">
+                  Пока нет данных по лидерам
+                </CardContent>
+              </Card>
             ) : (
               <div className="space-y-3">
                 {leaders.map((row, idx) => (
-                  <div key={row.user_id} className="flex items-stretch border overflow-hidden">
-                    <div className="flex items-stretch gap-3 w-full px-3 py-2">
-                      <div className="w-8 shrink-0 grid place-items-center self-stretch">
-                        <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">{idx + 1}</span>
-                      </div>
-                      <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
-                        <div className="flex items-center gap-2 px-2 py-1 text-[11px] leading-tight text-muted-foreground">
-                          <span className="truncate">Игрок</span>
-                          <span className="h-4 w-px bg-border" aria-hidden></span>
-                          <span className="truncate">Всего ставок: {row.totalBets}</span>
-                        </div>
-                        <div className="font-medium text-sm flex items-center gap-2  px-2 py-1 leading-tight">
-                          <span className="truncate">{row.name || `ID: ${row.user_id}`}</span>
-                        </div>
-                      </div>
-                      <div className="w-24 shrink-0 grid place-items-center  px-2 py-1">
-                        <div className="text-md  leading-none">{row.points}</div>
-                      </div>
-                    </div>
-                  </div>
+                  <LeaderRow key={row.user_id} row={row} index={idx} />
                 ))}
               </div>
             )}
@@ -473,12 +537,17 @@ export default function Dashboard() {
                 value={historyFilter}
                 onChange={(e) => setHistoryFilter(e.target.value)}
                 placeholder="Поиск по командам"
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary h-9"
               />
             </div>
+            
             <div className="space-y-3">
               {Object.values(bets).length === 0 ? (
-                <div className="text-muted-foreground">Пока нет ставок.</div>
+                <Card>
+                  <CardContent className="text-muted-foreground py-6 text-center">
+                    Пока нет ставок.
+                  </CardContent>
+                </Card>
               ) : (
                 Object.values(bets)
                   .filter((b) => {
@@ -490,61 +559,18 @@ export default function Dashboard() {
                       (m.away_team || '').toLowerCase().includes(q) ||
                       (m.league || '').toLowerCase().includes(q)
                     ) : false;
-                    return teamMatch; // убрали поиск по игрокам
+                    return teamMatch;
                   })
                   .sort((a, b) => {
                     const ma = matches.find(mm => mm.id === a.match_id);
                     const mb = matches.find(mm => mm.id === b.match_id);
                     const da = ma ? new Date(ma.starts_at).getTime() : 0;
                     const db = mb ? new Date(mb.starts_at).getTime() : 0;
-                    return historySortDesc ? db - da : da - db; // Последняя дата сверху
+                    return historySortDesc ? db - da : da - db;
                   })
                   .map((b, idx) => {
                     const m = matches.find(mm => mm.id === b.match_id);
-                    return (
-                      <Card key={b.match_id} className="">
-                        <CardContent className="px-3 py-2 h-full">
-                          <div className="flex items-stretch justify-between gap-3">
-                            <div className="w-8 shrink-0 grid place-items-center self-stretch  ">
-                              <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">
-                                {idx + 1}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
-                              <div className="flex items-center gap-2 px-2 py-1 text-[11px] leading-tight text-muted-foreground">
-                                {(m?.league || typeof m?.tour === 'number') && (
-                                  <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
-                                )}
-                                <span className="h-4 w-px bg-border" aria-hidden></span>
-                                <span className="truncate">Ставка #{b.id || '—'}</span>
-                                <span className="h-4 w-px bg-border" aria-hidden></span>
-                                <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
-                              </div>
-                              <div className="font-medium text-sm flex items-center gap-2 px-2 py-1 leading-tight">
-                                <span className="truncate leading-tight">{m?.home_team} — {m?.away_team}</span>
-                                {m?.status && (
-                                  <span className={cn(
-                                    "px-2 py-0.5 text-[10px] font-medium text-center",
-                                    statusClass(m?.status)
-                                  )}>{statusLabel(m?.status)}</span>
-                                )}
-                                {typeof b.points_earned === 'number' && b.points_earned > 0 && (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-black">Очки: +{b.points_earned}</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 self-stretch whitespace-nowrap px-2 py-1">
-                              {(['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number') && (
-                                <span className="text-sm text-muted-foreground tabular-nums">{m?.home_score} — {m?.away_score}</span>
-                              )}
-                              <span className="px-2 py-1 bg-secondary text-foreground text-sm">
-                                {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
+                    return <BetRow key={b.match_id} b={b} index={idx} m={m} />;
                   })
               )}
             </div>
