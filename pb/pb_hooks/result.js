@@ -3,7 +3,7 @@ import PocketBase from 'pocketbase';
 const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
 
 async function start() {
-  await pb.admins.authWithPassword('oleg.palmieri@ya.ru', '2BjnKE63!');
+  await pb.admins.authWithPassword('test@test.com', 'test');
 
   console.log('Скрипт запущен, проверка результатов матчей каждые 5 секунд...');
 
