@@ -22,7 +22,7 @@ function convertUtcToMoscow(utcTimeString) {
 
 async function start() {
   try {
-    await pb.admins.authWithPassword('oleg.palmieri@ya.ru', '2BjnKE63!');
+    await pb.admins.authWithPassword('test@test.com', 'test');
     console.log('Скрипт запущен, проверка времени начала матчей каждые 5 секунд...');
 
     setInterval(async () => {
