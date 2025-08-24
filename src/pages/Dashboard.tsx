@@ -9,7 +9,9 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { User, List, LogOut } from "lucide-react";
+import { User, List, LogOut, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
 pb.autoCancellation(false);
@@ -81,6 +83,15 @@ type PBUser = { id: string; email?: string; display_name?: string; displayed_nam
 type PBUserRecord = { id: string; email?: string; display_name?: string; displayed_name?: string };
 type AuthUser = PBUser | null;
 
+type Stats = {
+  users: number;
+  matches: number;
+  liveMatches: number;
+  bets: number;
+  correctBets: number;
+  successRate: number;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser>(null);
@@ -97,10 +108,18 @@ export default function Dashboard() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [groups, setGroups] = useState<Record<string, Match[]>>({});
   const [matches, setMatches] = useState<Match[]>([]);
-  const [leaders, setLeaders] = useState<Array<{ user_id: string; points: number; name: string; totalBets: number; guessedBets: number }>>([]);
+  const [leaders, setLeaders] = useState<Array<{ user_id: string; points: number; name: string; totalBets: number; guessedBets: number; successRate: number }>>([]);
   const [leadersLoading, setLeadersLoading] = useState<boolean>(false);
   const [historyFilter, setHistoryFilter] = useState<string>("");
   const [historySortDesc, setHistorySortDesc] = useState<boolean>(true);
+  const [stats, setStats] = useState<Stats>({ users: 0, matches: 0, liveMatches: 0, bets: 0, correctBets: 0, successRate: 0 });
+  const [statsLoading, setStatsLoading] = useState<boolean>(false);
+  const [leagueFilter, setLeagueFilter] = useState<string>("all");
+  const [tourFilter, setTourFilter] = useState<string>("all");
+  const [matchesPage, setMatchesPage] = useState<number>(1);
+  const [historyPage, setHistoryPage] = useState<number>(1);
+  const [showAllBets, setShowAllBets] = useState<boolean>(false);
+  const itemsPerPage = 5;
 
   const { toast } = useToast();
 
@@ -127,6 +146,82 @@ export default function Dashboard() {
     }
   };
 
+  const loadStats = async () => {
+    try {
+      setStatsLoading(true);
+      const [usersList, matchesList, betsList] = await Promise.all([
+        pb.collection('users').getList(1, 1),
+        pb.collection('matches').getList(1, 1000),
+        pb.collection('bets').getList(1, 1000)
+      ]);
+      
+      const liveMatches = matchesList.items.filter(match => match.status === 'live').length;
+      const correctBets = betsList.items.filter(bet => (bet.points || 0) > 0).length;
+      const successRate = betsList.totalItems > 0 ? Math.round((correctBets / betsList.totalItems) * 100) : 0;
+      
+      setStats({
+        users: usersList.totalItems,
+        matches: matchesList.totalItems,
+        liveMatches,
+        bets: betsList.totalItems,
+        correctBets,
+        successRate
+      });
+    } catch (e) {
+      console.error('Ошибка загрузки статистики:', e);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const loadLeaders = async () => {
+    try {
+      setLeadersLoading(true);
+      const betsList = await pb.collection('bets').getList<Bet>(1, 1000, {});
+      const aggPoints = new Map<string, number>();
+      const aggTotal = new Map<string, number>();
+      const aggGuessed = new Map<string, number>();
+      
+      for (const it of betsList.items) {
+        const uid = it.user_id as string;
+        const pts = Number(it.points || 0);
+        aggPoints.set(uid, (aggPoints.get(uid) || 0) + pts);
+        aggTotal.set(uid, (aggTotal.get(uid) || 0) + 1);
+        if (pts > 0) aggGuessed.set(uid, (aggGuessed.get(uid) || 0) + 1);
+      }
+      
+      // load all users and merge, show 0 points if absent
+      const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
+      const merged = usersList.items.map((u) => {
+        const totalBets = aggTotal.get(u.id) || 0;
+        const guessedBets = aggGuessed.get(u.id) || 0;
+        const successRate = totalBets > 0 ? Math.round((guessedBets / totalBets) * 100) : 0;
+        
+        return {
+          user_id: u.id,
+          points: aggPoints.get(u.id) || 0,
+          name: (u.display_name || u.displayed_name || '').trim() || `ID: ${u.id}`,
+          totalBets,
+          guessedBets,
+          successRate
+        };
+      });
+      
+      merged.sort((a, b) => b.points - a.points);
+      setLeaders(merged);
+    } catch (e: unknown) {
+      const err = e as { name?: string };
+      if (err?.name === 'AbortError') {
+        console.warn('load leaders aborted');
+      } else {
+        console.error(e);
+        toast({ variant: 'destructive', title: "Ошибка загрузки лидеров", description: "Попробуйте обновить страницу позже", duration: 3500, icon: 'error' as any });
+      }
+    } finally {
+      setLeadersLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Проверяем аутентификацию при загрузке
     if (!pb.authStore.isValid) {
@@ -138,12 +233,14 @@ export default function Dashboard() {
       const u = JSON.parse(userData) as PBUser;
       setUser(u);
       loadUserBets(u.id);
+      loadStats();
       const name = u.display_name || u.email || 'Игрок';
       toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default', icon: 'success' as any });
     } else {
       const rec = pb.authStore.record as unknown as PBUser | null;
       setUser(rec);
       if (rec?.id) loadUserBets(rec.id);
+      loadStats();
       if (rec) {
         const name = rec.display_name || rec.email || 'Игрок';
         toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default', icon: 'success' as any });
@@ -153,6 +250,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
+    
+    if (activeTab === "leaders") {
+      loadLeaders();
+    }
   }, [activeTab]);
 
   useEffect(() => {
@@ -160,7 +261,6 @@ export default function Dashboard() {
     const load = async () => {
       try {
         setLoading(true);
-        toast({ title: "Загрузка матчей…", description: "Подтягиваем список матчей", duration: 2000, variant: 'default', icon: 'loading' as any });
         const list = await pb.collection('matches').getList<Match>(1, 200, {
           sort: 'starts_at',
           filter: 'is_visible = true',
@@ -175,7 +275,6 @@ export default function Dashboard() {
           g[k].push(m);
         }
         setGroups(g);
-        toast({ title: "Матчи загружены", description: `Найдено: ${items.length}`, duration: 2500, variant: 'default', icon: 'success' as any });
       } catch (e: unknown) {
         const err = e as { name?: string };
         if (err?.name === 'AbortError') {
@@ -189,46 +288,6 @@ export default function Dashboard() {
       }
     };
     load();
-  }, []);
-
-  useEffect(() => {
-    const loadLeaders = async () => {
-      try {
-        setLeadersLoading(true);
-        const betsList = await pb.collection('bets').getList<Bet>(1, 1000, {});
-        const aggPoints = new Map<string, number>();
-        const aggTotal = new Map<string, number>();
-        const aggGuessed = new Map<string, number>();
-        for (const it of betsList.items) {
-          const uid = it.user_id as string;
-          const pts = Number(it.points || 0);
-          aggPoints.set(uid, (aggPoints.get(uid) || 0) + pts);
-          aggTotal.set(uid, (aggTotal.get(uid) || 0) + 1);
-          if (pts > 0) aggGuessed.set(uid, (aggGuessed.get(uid) || 0) + 1);
-        }
-        // load all users and merge, show 0 points if absent
-        const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
-        const merged = usersList.items.map((u) => ({
-          user_id: u.id,
-          points: aggPoints.get(u.id) || 0,
-          name: (u.display_name || u.displayed_name || '').trim() || `ID: ${u.id}`,
-          totalBets: aggTotal.get(u.id) || 0,
-          guessedBets: aggGuessed.get(u.id) || 0,
-        }));
-        merged.sort((a, b) => b.points - a.points);
-        setLeaders(merged);
-      } catch (e: unknown) {
-        const err = e as { name?: string };
-        if (err?.name === 'AbortError') {
-          console.warn('load leaders aborted');
-        } else {
-          console.error(e);
-        }
-      } finally {
-        setLeadersLoading(false);
-      }
-    };
-    loadLeaders();
   }, []);
 
   const handleLogout = () => {
@@ -301,23 +360,41 @@ export default function Dashboard() {
     }
   };
 
+  const StatCard = ({ value, label }: { value: number | string; label: string }) => (
+    <div className="flex flex-col items-center justify-center w-20 h-20 bg-background border border-border rounded-lg overflow-hidden">
+      <div className="flex-1 flex items-center justify-center w-full">
+        <span className="text-xl font-bold">{statsLoading ? "..." : value}</span>
+      </div>
+      <Separator />
+      <div className="w-full bg-muted/30 px-2 py-1 flex items-center justify-center">
+        <span className="text-xs text-muted-foreground font-medium">{label}</span>
+      </div>
+    </div>
+  );
+
   const Header = () => (
     <header className="flex items-center justify-between py-4">
       <div className="flex items-center gap-3">
-        <span className="inline-flex items-center px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-foreground text-background border border-foreground [clip-path:polygon(6px_0,100%_0,100%_calc(100%-6px),calc(100%-6px)_100%,0_100%,0_6px)]">
-          чувствуй разницу
+        <span className="inline-flex items-center px-3 py-1 text-[10px] font-semibold uppercase tracking-wide bg-foreground text-background border border-foreground [clip-path:polygon(6px_0,100%_0,100%_calc(100%-6px),calc(100%-6px)_100%,0_100%,0_6px)]">
+          почувствуй разницу
         </span>
       </div>
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" title="Профиль">
-          <User className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon" title="Список">
-          <List className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={handleLogout} title="Выйти">
-          <LogOut className="h-5 w-5" />
-        </Button>
+      
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <StatCard value={stats.users} label="Игроки" />
+          <StatCard value={stats.matches} label="События" />
+          <StatCard value={stats.liveMatches} label="LIVE" />
+          <StatCard value={stats.bets} label="Ставки" />
+          <StatCard value={stats.correctBets} label="Верные" />
+          <StatCard value={`${stats.successRate}%`} label="Успех" />
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={handleLogout} title="Выйти">
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </header>
   );
@@ -398,7 +475,7 @@ export default function Dashboard() {
     );
   };
 
-  const LeaderRow = ({ row, index }: { row: { user_id: string; points: number; name: string; totalBets: number; guessedBets: number }; index: number }) => (
+  const LeaderRow = ({ row, index }: { row: { user_id: string; points: number; name: string; totalBets: number; guessedBets: number; successRate: number }; index: number }) => (
     <Card className="transition-colors hover:bg-muted/50">
       <CardContent className="px-3 py-2">
         <div className="flex items-stretch gap-3 w-full">
@@ -406,17 +483,28 @@ export default function Dashboard() {
             <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">{index + 1}</span>
           </div>
           <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
-            <div className="flex items-center gap-2 px-1 py-0 text-[11px] leading-tight text-muted-foreground">
-              <span className="truncate">Ставок: {row.totalBets}</span>
-              <span className="h-4 w-px bg-border" aria-hidden></span>
-              <span className="truncate">Верных: {row.guessedBets}</span>
-            </div>
-            <div className="font-medium text-sm flex items-center gap-2 px-1 py-0 leading-tight">
+
+                        <div className="font-medium text-sm flex items-center gap-2 px-1 py-0 leading-tight">
               <span className="truncate">{row.name || `ID: ${row.user_id}`}</span>
             </div>
+
+            <div className="flex items-center gap-2 px-1 py-0 text-[11px] leading-tight text-muted-foreground">
+              <span className="px-2 py-0.5 rounded-full  bg-slate-100 text-slate-700 text-[10px] font-medium">
+                СТАВОК - {row.totalBets}
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-[10px] font-medium">
+                ТОЧНЫХ - {row.guessedBets}
+              </span>
+            </div>
+
           </div>
-          <div className="w-16 shrink-0 grid place-items-center">
-            <div className="text-sm font-medium leading-none">{row.points}</div>
+          <div className="flex items-center gap-2">
+            <div className="w-16 shrink-0 grid place-items-center">
+              <div className="text-sm font-medium leading-none">{row.points}</div>
+            </div>
+            <div className="w-16 shrink-0 grid place-items-center">
+              <div className="text-sm font-medium leading-none text-green-600">{row.successRate}%</div>
+            </div>
           </div>
         </div>
       </CardContent>
@@ -438,7 +526,7 @@ export default function Dashboard() {
                 <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
               )}
               <span className="h-4 w-px bg-border" aria-hidden></span>
-              <span className="truncate">Ставка #{b.id || '—'}</span>
+              <span className="truncate">Купон #{b.id || '—'}</span>
               <span className="h-4 w-px bg-border" aria-hidden></span>
               <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
             </div>
@@ -468,6 +556,78 @@ export default function Dashboard() {
     </Card>
   );
 
+  // Получаем уникальные лиги для фильтра
+  const uniqueLeagues = Array.from(new Set(matches.map(m => m.league))).sort();
+  
+  // Получаем уникальные туры для фильтра
+  const uniqueTours = Array.from(new Set(matches.map(m => m.tour))).sort((a, b) => a - b);
+  
+  // Фильтруем матчи по лиге и туру
+  const filteredGroups = Object.fromEntries(
+    Object.entries(groups).filter(([key]) => {
+      if (leagueFilter !== "all" && !key.includes(leagueFilter)) return false;
+      if (tourFilter !== "all" && !key.includes(`Тур ${tourFilter}`)) return false;
+      return true;
+    })
+  );
+
+  // Пагинация для матчей
+  const allMatches = Object.values(filteredGroups).flat();
+  const totalMatchesPages = Math.ceil(allMatches.length / itemsPerPage);
+  const paginatedMatches = allMatches.slice(
+    (matchesPage - 1) * itemsPerPage,
+    matchesPage * itemsPerPage
+  );
+
+  // Загрузка всех ставок для отображения в истории
+  const [allBets, setAllBets] = useState<Bet[]>([]);
+  const [allBetsLoading, setAllBetsLoading] = useState<boolean>(false);
+
+  const loadAllBets = async () => {
+    try {
+      setAllBetsLoading(true);
+      const betsList = await pb.collection('bets').getList<Bet>(1, 1000, {});
+      setAllBets(betsList.items as Bet[]);
+    } catch (e) {
+      console.error('Ошибка загрузки всех ставок:', e);
+    } finally {
+      setAllBetsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "all-bets" && showAllBets) {
+      loadAllBets();
+    }
+  }, [activeTab, showAllBets]);
+
+  // Фильтрация ставок для истории
+  const betsToShow = showAllBets ? allBets : Object.values(bets);
+  
+  const filteredBets = betsToShow.filter((b) => {
+    if (!historyFilter) return true;
+    const q = historyFilter.toLowerCase();
+    const m = matches.find(mm => mm.id === b.match_id);
+    const teamMatch = m ? (
+      (m.home_team || '').toLowerCase().includes(q) ||
+      (m.away_team || '').toLowerCase().includes(q) ||
+      (m.league || '').toLowerCase().includes(q)
+    ) : false;
+    return teamMatch;
+  }).sort((a, b) => {
+    const ma = matches.find(mm => mm.id === a.match_id);
+    const mb = matches.find(mm => mm.id === b.match_id);
+    const da = ma ? new Date(ma.starts_at).getTime() : 0;
+    const db = mb ? new Date(mb.starts_at).getTime() : 0;
+    return historySortDesc ? db - da : da - db;
+  });
+
+  const totalHistoryPages = Math.ceil(filteredBets.length / itemsPerPage);
+  const paginatedBets = filteredBets.slice(
+    (historyPage - 1) * itemsPerPage,
+    historyPage * itemsPerPage
+  );
+
   return (
     <div className="min-h-screen bg-gradient-subtle p-4">
       <div className="max-w-3xl mx-auto">
@@ -490,25 +650,99 @@ export default function Dashboard() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {Object.keys(groups).length === 0 && (
+                {/* Фильтр по лиге и туру */}
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-lg font-semibold">Выбор события</Label>
+                  <div className="flex gap-2">
+                    <Select value={leagueFilter} onValueChange={setLeagueFilter}>
+                      <SelectTrigger className="w-[140px] h-9">
+                        <SelectValue placeholder="Лига" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Все лиги</SelectItem>
+                        {uniqueLeagues.map(league => (
+                          <SelectItem key={league} value={league}>
+                            {league}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={tourFilter} onValueChange={setTourFilter}>
+                      <SelectTrigger className="w-[100px] h-9">
+                        <SelectValue placeholder="Тур" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Все туры</SelectItem>
+                        {uniqueTours.map(tour => (
+                          <SelectItem key={tour} value={tour.toString()}>
+                            Тур {tour}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {Object.keys(filteredGroups).length === 0 && (
                   <Card>
                     <CardContent className="text-center text-muted-foreground py-6">
-                      Нет матчей. Проверьте доступность PocketBase и поле is_visible в коллекции matches.
+                      Нет матчей в выбранной лиге.
                     </CardContent>
                   </Card>
                 )}
-                {Object.entries(groups).map(([groupTitle, arr]) => (
-                  <div key={groupTitle} className="space-y-3">
-                    {arr.map((m, idx) => (
-                      <MatchRow key={m.id} m={m} index={idx} />
-                    ))}
-                  </div>
-                ))}
+
+                <div className="space-y-3">
+                  {paginatedMatches.map((m, idx) => (
+                    <MatchRow key={m.id} m={m} index={idx} />
+                  ))}
+                </div>
+
+                {totalMatchesPages > 1 && (
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setMatchesPage(prev => Math.max(1, prev - 1))}
+                          className={matchesPage === 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalMatchesPages }, (_, i) => i + 1).map(page => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            isActive={page === matchesPage}
+                            onClick={() => setMatchesPage(page)}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setMatchesPage(prev => Math.min(totalMatchesPages, prev + 1))}
+                          className={matchesPage === totalMatchesPages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="leaders" className="mt-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold">Таблица лидеров</h3>
+              <Button 
+                variant="outline" 
+                onClick={loadLeaders}
+                disabled={leadersLoading}
+                className="h-9"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${leadersLoading ? 'animate-spin' : ''}`} />
+                {leadersLoading ? "Обновление..." : "Обновить"}
+              </Button>
+            </div>
+            
             {leadersLoading ? (
               <Card>
                 <CardContent className="text-center text-muted-foreground py-8">
@@ -531,49 +765,78 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="all-bets" className="mt-4">
-            <div className="mb-3">
+            <div className="flex justify-between items-center mb-3 gap-2">
               <input
                 type="text"
                 value={historyFilter}
                 onChange={(e) => setHistoryFilter(e.target.value)}
                 placeholder="Поиск по командам"
-                className="w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary h-9"
+                className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary h-9"
               />
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">Все игроки:</Label>
+                <Button
+                  variant={showAllBets ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowAllBets(!showAllBets)}
+                  className="h-9"
+                >
+                  {showAllBets ? "Да" : "Нет"}
+                </Button>
+              </div>
             </div>
             
             <div className="space-y-3">
-              {Object.values(bets).length === 0 ? (
+              {allBetsLoading ? (
+                <Card>
+                  <CardContent className="text-muted-foreground py-6 text-center">
+                    Загрузка всех ставок…
+                  </CardContent>
+                </Card>
+              ) : filteredBets.length === 0 ? (
                 <Card>
                   <CardContent className="text-muted-foreground py-6 text-center">
                     Пока нет ставок.
                   </CardContent>
                 </Card>
               ) : (
-                Object.values(bets)
-                  .filter((b) => {
-                    if (!historyFilter) return true;
-                    const q = historyFilter.toLowerCase();
+                <>
+                  {paginatedBets.map((b, idx) => {
                     const m = matches.find(mm => mm.id === b.match_id);
-                    const teamMatch = m ? (
-                      (m.home_team || '').toLowerCase().includes(q) ||
-                      (m.away_team || '').toLowerCase().includes(q) ||
-                      (m.league || '').toLowerCase().includes(q)
-                    ) : false;
-                    return teamMatch;
-                  })
-                  .sort((a, b) => {
-                    const ma = matches.find(mm => mm.id === a.match_id);
-                    const mb = matches.find(mm => mm.id === b.match_id);
-                    const da = ma ? new Date(ma.starts_at).getTime() : 0;
-                    const db = mb ? new Date(mb.starts_at).getTime() : 0;
-                    return historySortDesc ? db - da : da - db;
-                  })
-                  .map((b, idx) => {
-                    const m = matches.find(mm => mm.id === b.match_id);
-                    return <BetRow key={b.match_id} b={b} index={idx} m={m} />;
-                  })
+                    return <BetRow key={`${b.id}-${b.user_id}`} b={b} index={idx} m={m} />;
+                  })}
+                </>
               )}
             </div>
+
+            {totalHistoryPages > 1 && (
+              <Pagination className="mt-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setHistoryPage(prev => Math.max(1, prev - 1))}
+                      className={historyPage === 1 ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map(page => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        isActive={page === historyPage}
+                        onClick={() => setHistoryPage(page)}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setHistoryPage(prev => Math.min(totalHistoryPages, prev + 1))}
+                      className={historyPage === totalHistoryPages ? "pointer-events-none opacity-50" : ""}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </TabsContent>
         </Tabs>
       </div>
