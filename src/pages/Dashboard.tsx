@@ -19,13 +19,14 @@ pb.autoCancellation(false);
 const formatMsk = (iso: string) => {
   try {
     const d = new Date(iso);
+    const mskDate = new Date(d.toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
     const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-    const wd = weekdays[d.getDay()];
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const hh = String(d.getUTCHours()).padStart(2, '0');
-    const min = String(d.getUTCMinutes()).padStart(2, '0');
-    return `${wd} ${dd}.${mm} ${hh}:${min} (UTC)`;
+    const wd = weekdays[mskDate.getDay()];
+    const dd = String(mskDate.getDate()).padStart(2, '0');
+    const mm = String(mskDate.getMonth() + 1).padStart(2, '0');
+    const hh = String(mskDate.getHours()).padStart(2, '0');
+    const min = String(mskDate.getMinutes()).padStart(2, '0');
+    return `${dd}.${mm} ${hh}:${min}`;
   } catch {
     return '';
   }
@@ -154,11 +155,11 @@ export default function Dashboard() {
         pb.collection('matches').getList(1, 1000),
         pb.collection('bets').getList(1, 1000)
       ]);
-      
+
       const liveMatches = matchesList.items.filter(match => match.status === 'live').length;
       const correctBets = betsList.items.filter(bet => (bet.points || 0) > 0).length;
       const successRate = betsList.totalItems > 0 ? Math.round((correctBets / betsList.totalItems) * 100) : 0;
-      
+
       setStats({
         users: usersList.totalItems,
         matches: matchesList.totalItems,
@@ -181,7 +182,7 @@ export default function Dashboard() {
       const aggPoints = new Map<string, number>();
       const aggTotal = new Map<string, number>();
       const aggGuessed = new Map<string, number>();
-      
+
       for (const it of betsList.items) {
         const uid = it.user_id as string;
         const pts = Number(it.points || 0);
@@ -189,14 +190,14 @@ export default function Dashboard() {
         aggTotal.set(uid, (aggTotal.get(uid) || 0) + 1);
         if (pts > 0) aggGuessed.set(uid, (aggGuessed.get(uid) || 0) + 1);
       }
-      
+
       // load all users and merge, show 0 points if absent
       const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
       const merged = usersList.items.map((u) => {
         const totalBets = aggTotal.get(u.id) || 0;
         const guessedBets = aggGuessed.get(u.id) || 0;
         const successRate = totalBets > 0 ? Math.round((guessedBets / totalBets) * 100) : 0;
-        
+
         return {
           user_id: u.id,
           points: aggPoints.get(u.id) || 0,
@@ -206,7 +207,7 @@ export default function Dashboard() {
           successRate
         };
       });
-      
+
       merged.sort((a, b) => b.points - a.points);
       setLeaders(merged);
     } catch (e: unknown) {
@@ -250,7 +251,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
-    
+
     if (activeTab === "leaders") {
       loadLeaders();
     }
@@ -379,9 +380,9 @@ export default function Dashboard() {
           почувствуй разницу
         </span>
       </div>
-      
+
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2">
           <StatCard value={stats.users} label="Игроки" />
           <StatCard value={stats.matches} label="События" />
           <StatCard value={stats.liveMatches} label="LIVE" />
@@ -389,7 +390,7 @@ export default function Dashboard() {
           <StatCard value={stats.correctBets} label="Верные" />
           <StatCard value={`${stats.successRate}%`} label="Успех" />
         </div>
-        
+
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={handleLogout} title="Выйти">
             <LogOut className="h-5 w-5" />
@@ -427,47 +428,69 @@ export default function Dashboard() {
     const selected = bets[m.id]?.pick;
     const disabled = (m.is_locked ?? false) || (m.status ? m.status !== 'upcoming' : false);
     const isSaving = !!saving[m.id];
+
+    // Результат матча
+    const result = (['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number')
+      ? `${m.home_score} — ${m.away_score}`
+      : '—';
+
+    // Прогноз пользователя
+    const forecast = selected ? (selected === 'H' ? 'П1' : selected === 'D' ? 'Х' : 'П2') : '—';
+
     return (
       <Card className="transition-colors hover:bg-muted/50">
-        <CardContent className="px-3 py-2 h-full">
-          <div className="flex items-stretch justify-between gap-3 px-0 py-0">
-            {/* Left ordinal badge */}
-            <div className="w-8 shrink-0 grid place-items-center self-stretch">
-              {typeof index === 'number' && (
-                <span className="inline-flex h-6 w-6 items-center justify-center  bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">
-                  {index + 1}
+        <CardContent className="px-4 py-3">
+          <div className="grid grid-rows-5 gap-1 min-h-[100px]">
+            {/* Строка 1: Номер | Дата | Статус */}
+            <div className="flex items-center justify-between h-5">
+              <span className="text-xs font-medium text-muted-foreground">
+                {typeof index === 'number' ? `${index + 1} • М${m.id}` : `М${m.id}`}
+              </span>
+              <span className="text-xs text-center text-muted-foreground">
+                {formatMsk(m.starts_at)}
+              </span>
+              <span className={cn(
+                "px-2 py-0.5 text-[10px] font-medium rounded",
+                statusClass(m.status)
+              )}>
+                {statusLabel(m.status)}
+              </span>
+            </div>
+
+            {/* Строка 2: Тур и лига */}
+            <div className="flex items-center justify-center h-5">
+              <span className="text-xs text-center text-muted-foreground">
+                {m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}
+              </span>
+            </div>
+
+            {/* Строка 3: Команды */}
+            <div className="flex items-center justify-center h-6">
+              <span className="text-sm font-medium text-center truncate">
+                {m.home_team} — {m.away_team}
+              </span>
+            </div>
+
+            {/* Строка 4: Результат */}
+            <div className="flex items-center justify-center h-5">
+              <span className="text-sm font-medium text-center">
+                {result}
+              </span>
+            </div>
+
+            {/* Строка 5: Прогноз */}
+            <div className="flex items-center justify-center gap-1 h-8">
+              {!disabled ? (
+                <>
+                  <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={isSaving} onClick={() => handlePick(m, 'H')} />
+                  <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={isSaving} onClick={() => handlePick(m, 'D')} />
+                  <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={isSaving} onClick={() => handlePick(m, 'A')} />
+                </>
+              ) : (
+                <span className="text-sm text-center text-muted-foreground">
+                  {forecast}
                 </span>
               )}
-            </div>
-            {/* Center stacked info */}
-            <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
-              <div className="flex items-center gap-2 px-1 py-0 text-[11px] leading-tight text-muted-foreground">
-                {(m.league || typeof m.tour === 'number') && (
-                  <span className="truncate">{m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}</span>
-                )}
-                <span className="h-4 w-px bg-border" aria-hidden></span>
-                <span className="truncate">Событие #{m.id}</span>
-                <span className="h-4 w-px bg-border" aria-hidden></span>
-                <span className="truncate">{formatMsk(m.starts_at)}</span>
-              </div>
-              <div className="font-medium text-sm flex items-center gap-2 px-1 py-0 leading-tight">
-                <span className="truncate leading-tight">{m.home_team} — {m.away_team}</span>
-                {m.status && (
-                  <span className={cn(
-                    "px-2 py-0.5 text-[10px] font-medium",
-                    statusClass(m.status)
-                  )}>{statusLabel(m.status)}</span>
-                )}
-              </div>
-            </div>
-            {/* Right bets/results */}
-            <div className="shrink-0 flex items-center gap-1 self-stretch whitespace-nowrap">
-              {(['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number') && (
-                <span className="text-xs text-muted-foreground tabular-nums mr-1">{m.home_score} — {m.away_score}</span>
-              )}
-              <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'H')} />
-              <Chip label="Х" odd={m.odd_draw} selected={selected === 'D'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'D')} />
-              <Chip label="П2" odd={m.odd_away} selected={selected === 'A'} disabled={disabled || isSaving} onClick={() => handlePick(m, 'A')} />
             </div>
           </div>
         </CardContent>
@@ -477,33 +500,51 @@ export default function Dashboard() {
 
   const LeaderRow = ({ row, index }: { row: { user_id: string; points: number; name: string; totalBets: number; guessedBets: number; successRate: number }; index: number }) => (
     <Card className="transition-colors hover:bg-muted/50">
-      <CardContent className="px-3 py-2">
-        <div className="flex items-stretch gap-3 w-full">
-          <div className="w-8 shrink-0 grid place-items-center self-stretch">
-            <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">{index + 1}</span>
+      <CardContent className="px-4 py-3">
+        <div className="grid grid-rows-5 gap-1 min-h-[100px]">
+          {/* Строка 1: Номер | Позиция | Очки */}
+          <div className="flex items-center justify-between h-5">
+            <span className="text-xs font-medium text-muted-foreground">
+              {index + 1} • И{row.user_id.slice(-6)}
+            </span>
+            <span className="text-xs text-center font-medium">
+              Позиция #{index + 1}
+            </span>
+            <span className="text-xs font-medium text-green-600">
+              {row.points} очков
+            </span>
           </div>
-          <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
 
-                        <div className="font-medium text-sm flex items-center gap-2 px-1 py-0 leading-tight">
-              <span className="truncate">{row.name || `ID: ${row.user_id}`}</span>
-            </div>
-
-            <div className="flex items-center gap-2 px-1 py-0 text-[11px] leading-tight text-muted-foreground">
-              <span className="px-2 py-0.5 rounded-full  bg-slate-100 text-slate-700 text-[10px] font-medium">
-                СТАВОК - {row.totalBets}
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-[10px] font-medium">
-                ТОЧНЫХ - {row.guessedBets}
-              </span>
-            </div>
-
+          {/* Строка 2: Статистика */}
+          <div className="flex items-center justify-center h-5">
+            <span className="text-xs text-center text-muted-foreground">
+              Ставок: {row.totalBets} • Точных: {row.guessedBets}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-16 shrink-0 grid place-items-center">
-              <div className="text-sm font-medium leading-none">{row.points}</div>
-            </div>
-            <div className="w-16 shrink-0 grid place-items-center">
-              <div className="text-sm font-medium leading-none text-green-600">{row.successRate}%</div>
+
+          {/* Строка 3: Имя игрока */}
+          <div className="flex items-center justify-center h-6">
+            <span className="text-sm font-medium text-center truncate">
+              {row.name || `Игрок ${row.user_id.slice(-6)}`}
+            </span>
+          </div>
+
+          {/* Строка 4: Результативность */}
+          <div className="flex items-center justify-center h-5">
+            <span className="text-sm font-medium text-center">
+              Успешность: {row.successRate}%
+            </span>
+          </div>
+
+          {/* Строка 5: Достижения */}
+          <div className="flex items-center justify-center h-8">
+            <div className="flex gap-2">
+              <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
+                {row.totalBets} ставок
+              </span>
+              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                {row.guessedBets} точных
+              </span>
             </div>
           </div>
         </div>
@@ -511,57 +552,84 @@ export default function Dashboard() {
     </Card>
   );
 
-  const BetRow = ({ b, index, m }: { b: Bet; index: number; m?: Match }) => (
-    <Card key={b.match_id} className="transition-colors hover:bg-muted/50">
-      <CardContent className="px-3 py-2">
-        <div className="flex items-stretch justify-between gap-3">
-          <div className="w-8 shrink-0 grid place-items-center self-stretch">
-            <span className="inline-flex h-6 w-6 items-center justify-center bg-slate-100 text-slate-700 text-[11px] font-medium leading-none">
-              {index + 1}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0 grid grid-rows-[auto_auto] gap-0">
-            <div className="flex items-center gap-2 px-1 py-0 text-[11px] leading-tight text-muted-foreground">
-              {(m?.league || typeof m?.tour === 'number') && (
-                <span className="truncate">{m?.league}{typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}</span>
-              )}
-              <span className="h-4 w-px bg-border" aria-hidden></span>
-              <span className="truncate">Купон #{b.id || '—'}</span>
-              <span className="h-4 w-px bg-border" aria-hidden></span>
-              <span className="truncate">{m ? formatMsk(m.starts_at) : ''}</span>
+  const BetRow = ({ b, index, m }: { b: Bet; index: number; m?: Match }) => {
+    // Результат матча
+    const result = (['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number')
+      ? `${m?.home_score} — ${m?.away_score}`
+      : '—';
+
+    // Прогноз из ставки
+    const forecast = b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2';
+
+    return (
+      <Card key={b.match_id} className="transition-colors hover:bg-muted/50">
+        <CardContent className="px-4 py-3">
+          <div className="grid grid-rows-5 gap-1 min-h-[100px]">
+            {/* Строка 1: Номер | Дата | Статус */}
+            <div className="flex items-center justify-between h-5">
+              <span className="text-xs font-medium text-muted-foreground">
+                {index + 1} • С{b.id?.slice(-6) || '—'}
+              </span>
+              <span className="text-xs text-center text-muted-foreground">
+                {m ? formatMsk(m.starts_at) : '—'}
+              </span>
+              <span className={cn(
+                "px-2 py-0.5 text-[10px] font-medium rounded",
+                m?.status ? statusClass(m.status) : "bg-slate-100 text-slate-700"
+              )}>
+                {m?.status ? statusLabel(m.status) : '—'}
+              </span>
             </div>
-            <div className="font-medium text-sm flex items-center gap-2 px-1 py-0 leading-tight">
-              <span className="truncate leading-tight">{m?.home_team} — {m?.away_team}</span>
-              {m?.status && (
-                <span className={cn(
-                  "px-2 py-0.5 text-[10px] font-medium text-center",
-                  statusClass(m?.status)
-                )}>{statusLabel(m?.status)}</span>
-              )}
-              {typeof b.points === 'number' && b.points > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white bg-black">+{b.points}</span>
-              )}
+
+            {/* Строка 2: Тур и лига */}
+            <div className="flex items-center justify-center h-5">
+              <span className="text-xs text-center text-muted-foreground">
+                {(m?.league || typeof m?.tour === 'number') ?
+                  `${m?.league}${typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}` :
+                  '—'
+                }
+              </span>
+            </div>
+
+            {/* Строка 3: Команды */}
+            <div className="flex items-center justify-center h-6">
+              <span className="text-sm font-medium text-center truncate">
+                {m?.home_team && m?.away_team ? `${m.home_team} — ${m.away_team}` : '—'}
+              </span>
+            </div>
+
+            {/* Строка 4: Результат */}
+            <div className="flex items-center justify-center h-5">
+              <span className="text-sm font-medium text-center">
+                {result}
+              </span>
+            </div>
+
+            {/* Строка 5: Прогноз */}
+            <div className="flex items-center justify-center h-8">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-1 bg-secondary text-foreground text-xs rounded">
+                  {forecast}
+                </span>
+                {typeof b.points === 'number' && b.points > 0 && (
+                  <span className="px-2 py-1 bg-green-600 text-white text-xs rounded font-medium">
+                    +{b.points} очков
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 self-stretch whitespace-nowrap">
-            {(['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number') && (
-              <span className="text-xs text-muted-foreground tabular-nums mr-1">{m?.home_score} — {m?.away_score}</span>
-            )}
-            <span className="px-2 py-1 bg-secondary text-foreground text-xs h-7 flex items-center justify-center">
-              {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   // Получаем уникальные лиги для фильтра
   const uniqueLeagues = Array.from(new Set(matches.map(m => m.league))).sort();
-  
+
   // Получаем уникальные туры для фильтра
   const uniqueTours = Array.from(new Set(matches.map(m => m.tour))).sort((a, b) => a - b);
-  
+
   // Фильтруем матчи по лиге и туру
   const filteredGroups = Object.fromEntries(
     Object.entries(groups).filter(([key]) => {
@@ -603,7 +671,7 @@ export default function Dashboard() {
 
   // Фильтрация ставок для истории
   const betsToShow = showAllBets ? allBets : Object.values(bets);
-  
+
   const filteredBets = betsToShow.filter((b) => {
     if (!historyFilter) return true;
     const q = historyFilter.toLowerCase();
@@ -701,7 +769,7 @@ export default function Dashboard() {
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious 
+                        <PaginationPrevious
                           onClick={() => setMatchesPage(prev => Math.max(1, prev - 1))}
                           className={matchesPage === 1 ? "pointer-events-none opacity-50" : ""}
                         />
@@ -717,7 +785,7 @@ export default function Dashboard() {
                         </PaginationItem>
                       ))}
                       <PaginationItem>
-                        <PaginationNext 
+                        <PaginationNext
                           onClick={() => setMatchesPage(prev => Math.min(totalMatchesPages, prev + 1))}
                           className={matchesPage === totalMatchesPages ? "pointer-events-none opacity-50" : ""}
                         />
@@ -732,8 +800,8 @@ export default function Dashboard() {
           <TabsContent value="leaders" className="mt-4">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-lg font-semibold">Таблица лидеров</h3>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={loadLeaders}
                 disabled={leadersLoading}
                 className="h-9"
@@ -742,7 +810,7 @@ export default function Dashboard() {
                 {leadersLoading ? "Обновление..." : "Обновить"}
               </Button>
             </div>
-            
+
             {leadersLoading ? (
               <Card>
                 <CardContent className="text-center text-muted-foreground py-8">
@@ -785,7 +853,7 @@ export default function Dashboard() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="space-y-3">
               {allBetsLoading ? (
                 <Card>
@@ -813,7 +881,7 @@ export default function Dashboard() {
               <Pagination className="mt-4">
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious 
+                    <PaginationPrevious
                       onClick={() => setHistoryPage(prev => Math.max(1, prev - 1))}
                       className={historyPage === 1 ? "pointer-events-none opacity-50" : ""}
                     />
@@ -829,7 +897,7 @@ export default function Dashboard() {
                     </PaginationItem>
                   ))}
                   <PaginationItem>
-                    <PaginationNext 
+                    <PaginationNext
                       onClick={() => setHistoryPage(prev => Math.min(totalHistoryPages, prev + 1))}
                       className={historyPage === totalHistoryPages ? "pointer-events-none opacity-50" : ""}
                     />
