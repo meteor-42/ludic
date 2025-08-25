@@ -2,35 +2,29 @@ import PocketBase from 'pocketbase';
 
 const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
 
-// Функция для получения текущего московского времени в формате Date
+// Функция для получения текущего московского времени в формате ISO
 function getCurrentMoscowTime() {
   const now = new Date();
   // Московское время = UTC + 3 часа
-  return new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  const moscowTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+  return moscowTime.toISOString();
 }
 
-// Функция для преобразования UTC времени из базы в московское время
-function convertUtcToMoscow(utcTimeString) {
-  if (!utcTimeString) return null;
-  
-  // Создаем Date объект из UTC времени (автоматически парсит ISO формат)
-  const utcDate = new Date(utcTimeString);
-  
-  // Конвертируем UTC в московское время (+3 часа)
-  return new Date(utcDate.getTime() + 3 * 60 * 60 * 1000);
+// Функция для преобразования строки времени в Date объект (уже в московском времени)
+function parseMoscowTime(timeString) {
+  if (!timeString) return null;
+  return new Date(timeString);
 }
 
 async function start() {
   try {
-    await pb.admins.authWithPassword('test@test.com', 'test');
+    await pb.admins.authWithPassword('oleg.palmieri@ya.ru', '2BjnKE63!');
     console.log('Скрипт запущен, проверка времени начала матчей каждые 5 секунд...');
 
     setInterval(async () => {
       try {
-        const currentMoscowTime = getCurrentMoscowTime();
-        const nowUTC = new Date().toISOString();
+        const currentMoscowTime = parseMoscowTime(getCurrentMoscowTime());
         
-        console.log(`Системное время (UTC): ${nowUTC}`);
         console.log(`Текущее московское время: ${currentMoscowTime.toISOString()}`);
         
         // Получаем матчи которые еще не начались (upcoming)
@@ -40,8 +34,8 @@ async function start() {
 
         for (const match of matches) {      
           if (match.starts_at) {
-            const matchMoscowTime = convertUtcToMoscow(match.starts_at);
-            console.log(`Матч ${match.id}: UTC время = ${match.starts_at}, МСК время = ${matchMoscowTime.toISOString()}`);
+            const matchMoscowTime = parseMoscowTime(match.starts_at);
+            console.log(`Матч ${match.id}: МСК время начала = ${matchMoscowTime.toISOString()}`);
             
             // Сравниваем московское время начала матча с текущим московским временем
             if (matchMoscowTime && matchMoscowTime <= currentMoscowTime) {
