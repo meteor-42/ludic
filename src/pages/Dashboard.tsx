@@ -784,7 +784,7 @@ const Chip = ({
 
           <TabsContent value="leaders" className="mt-4">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-semibold">Таблица лидеров</h3>
+              <h3 className="text-lg font-semibold">Таблица</h3>
               <Button
                 variant="outline"
                 onClick={loadLeaders}
