@@ -16,7 +16,7 @@ export function Toaster() {
     <ToastProvider swipeDirection="right">
       {toasts.map(function ({ id, title, description, action, variant, icon, ...props }) {
         return (
-          <Toast key={id} {...props} variant={variant as any} className="w-full max-w-[560px] p-4">
+          <Toast key={id} {...props} variant={variant} className="w-full max-w-[560px] p-4">
             <div className="flex items-start gap-3">
               <div className="mt-0.5">
                 {variant === 'destructive' ? (
