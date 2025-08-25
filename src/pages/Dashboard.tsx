@@ -120,7 +120,7 @@ export default function Dashboard() {
   const [matchesPage, setMatchesPage] = useState<number>(1);
   const [historyPage, setHistoryPage] = useState<number>(1);
   const [showAllBets, setShowAllBets] = useState<boolean>(false);
-  const itemsPerPage = 5;
+  const itemsPerPage = 8;
 
   const { toast } = useToast();
 
@@ -344,7 +344,7 @@ export default function Dashboard() {
           }
         }));
       }
-      const pickLabel = pick === 'H' ? 'П1' : pick === 'D' ? 'Х' : 'П2';
+     const pickLabel = pick === 'H' ? 'П1' : pick === 'D' ? 'Х' : 'П2';
       const odd = pick === 'H' ? match.odd_home : pick === 'D' ? match.odd_draw : match.odd_away;
       const suffix = odd != null ? ` • ${pickLabel} (${odd.toFixed(2)})` : ` • ${pickLabel}`;
       toast({ title: `${match.home_team} — ${match.away_team}${suffix}`, description: 'Ваш выбор учтен. Удачи.', duration: 2500, icon: 'success' as any });
@@ -364,11 +364,11 @@ export default function Dashboard() {
   const StatCard = ({ value, label }: { value: number | string; label: string }) => (
     <div className="flex flex-col items-center justify-center w-20 h-20 bg-background border border-border rounded-lg overflow-hidden">
       <div className="flex-1 flex items-center justify-center w-full">
-        <span className="text-xl font-bold">{statsLoading ? "..." : value}</span>
+        <span className="text-xl">{statsLoading ? "..." : value}</span>
       </div>
       <Separator />
       <div className="w-full bg-muted/30 px-2 py-1 flex items-center justify-center">
-        <span className="text-xs text-muted-foreground font-medium">{label}</span>
+        <span className="text-xs text-muted-foreground ">{label}</span>
       </div>
     </div>
   );
@@ -400,29 +400,29 @@ export default function Dashboard() {
     </header>
   );
 
-  const Chip = ({
-    label,
-    selected,
-    onClick,
-    disabled,
-    odd,
-  }: { label: string; selected: boolean; onClick: () => void; disabled?: boolean; odd?: number }) => (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "px-2 py-1 rounded-md border text-xs transition-colors h-7 flex items-center justify-center",
-        selected ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted border-border",
-        disabled && "opacity-50 cursor-not-allowed"
-      )}
-    >
-      <span>{label}</span>
-      {odd != null && (
-        <span className="ml-1 text-[10px] text-muted-foreground">{odd.toFixed(2)}</span>
-      )}
-    </button>
-  );
+const Chip = ({
+  label,
+  selected,
+  onClick,
+  disabled,
+  odd,
+}: { label: string; selected: boolean; onClick: () => void; disabled?: boolean; odd?: number }) => (
+  <button
+    type="button"
+    disabled={disabled}
+    onClick={onClick}
+    className={cn(
+      "px-4 py-3 rounded-md border transition-colors h-10 w-10 flex flex-col items-center justify-center", // Увеличил размеры
+      selected ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted border-border",
+      disabled && "opacity-50 cursor-not-allowed"
+    )}
+  >
+    <span className="text-base">{label}</span> {/* Увеличил текст */}
+    {odd != null && (
+      <span className="text-xs text-muted-foreground mt-1">{odd.toFixed(2)}</span> // Добавил отступ сверху
+    )}
+  </button>
+);
 
   const MatchRow = ({ m, index }: { m: Match; index?: number }) => {
     const selected = bets[m.id]?.pick;
@@ -430,25 +430,30 @@ export default function Dashboard() {
     const isSaving = !!saving[m.id];
 
     // Результат матча
-    const result = (['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number')
-      ? `${m.home_score} — ${m.away_score}`
-      : '—';
+    const hasResult = ['live','completed'].includes((m.status||'').toLowerCase()) && typeof m.home_score === 'number' && typeof m.away_score === 'number';
+    const result = hasResult ? `${m.home_score} — ${m.away_score}` : null;
 
     // Прогноз пользователя
     const forecast = selected ? (selected === 'H' ? 'П1' : selected === 'D' ? 'Х' : 'П2') : '—';
 
     return (
       <Card className="transition-colors hover:bg-muted/50">
-        <CardContent className="px-4 py-3">
-          <div className="grid grid-rows-5 gap-1 min-h-[100px]">
-            {/* Строка 1: Номер | Дата | Статус */}
-            <div className="flex items-center justify-between h-5">
+        <CardContent className="p-2">
+          <div className="flex flex-col gap-0">
+            {/* Строка 1: Номер | Дата/Лига/Тур | Статус */}
+            <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">
                 {typeof index === 'number' ? `${index + 1} • М${m.id}` : `М${m.id}`}
               </span>
-              <span className="text-xs text-center text-muted-foreground">
-                {formatMsk(m.starts_at)}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {formatMsk(m.starts_at)}
+                </span>
+                <span className="text-muted-foreground">︙</span>
+                <span className="text-xs text-muted-foreground">
+                  {m.league}{typeof m.tour === 'number' ? ` Тур ${m.tour}` : ''}
+                </span>
+              </div>
               <span className={cn(
                 "px-2 py-0.5 text-[10px] font-medium rounded",
                 statusClass(m.status)
@@ -457,29 +462,24 @@ export default function Dashboard() {
               </span>
             </div>
 
-            {/* Строка 2: Тур и лига */}
-            <div className="flex items-center justify-center h-5">
-              <span className="text-xs text-center text-muted-foreground">
-                {m.league}{typeof m.tour === 'number' ? ` • Тур ${m.tour}` : ''}
-              </span>
-            </div>
-
-            {/* Строка 3: Команды */}
-            <div className="flex items-center justify-center h-6">
+            {/* Строка 2: Команды */}
+            <div className="flex items-center justify-center">
               <span className="text-sm font-medium text-center truncate">
-                {m.home_team} — {m.away_team}
+                {m.home_team} ～ {m.away_team}
               </span>
             </div>
 
-            {/* Строка 4: Результат */}
-            <div className="flex items-center justify-center h-5">
-              <span className="text-sm font-medium text-center">
-                {result}
-              </span>
-            </div>
+            {/* Строка 3: Результат (только если есть) */}
+            {hasResult && (
+              <div className="flex items-center justify-center">
+                <span className="text-sm font-medium text-center">
+                  {result}
+                </span>
+              </div>
+            )}
 
-            {/* Строка 5: Прогноз */}
-            <div className="flex items-center justify-center gap-1 h-8">
+            {/* Строка 4: Прогноз */}
+            <div className="flex items-center justify-center gap-1 mt-2">
               {!disabled ? (
                 <>
                   <Chip label="П1" odd={m.odd_home} selected={selected === 'H'} disabled={isSaving} onClick={() => handlePick(m, 'H')} />
@@ -500,52 +500,39 @@ export default function Dashboard() {
 
   const LeaderRow = ({ row, index }: { row: { user_id: string; points: number; name: string; totalBets: number; guessedBets: number; successRate: number }; index: number }) => (
     <Card className="transition-colors hover:bg-muted/50">
-      <CardContent className="px-4 py-3">
-        <div className="grid grid-rows-5 gap-1 min-h-[100px]">
-          {/* Строка 1: Номер | Позиция | Очки */}
-          <div className="flex items-center justify-between h-5">
-            <span className="text-xs font-medium text-muted-foreground">
-              {index + 1} • И{row.user_id.slice(-6)}
+      <CardContent className="p-2">
+        <div className="flex flex-col gap-0">
+          {/* Строка 1: Имя игрока | Номер | Очки */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium">
+              {row.name || `Игрок ${row.user_id.slice(-6)}`}
             </span>
-            <span className="text-xs text-center font-medium">
-              Позиция #{index + 1}
+            <span className="text-xs text-muted-foreground">
+              #{index + 1}
             </span>
             <span className="text-xs font-medium text-green-600">
               {row.points} очков
             </span>
           </div>
 
-          {/* Строка 2: Статистика */}
-          <div className="flex items-center justify-center h-5">
+          {/* Строка 2: ID игрока */}
+          <div className="flex items-center justify-center">
             <span className="text-xs text-center text-muted-foreground">
-              Ставок: {row.totalBets} • Точных: {row.guessedBets}
+              ID: {row.user_id.slice(-6)}
             </span>
           </div>
 
-          {/* Строка 3: Имя игрока */}
-          <div className="flex items-center justify-center h-6">
-            <span className="text-sm font-medium text-center truncate">
-              {row.name || `Игрок ${row.user_id.slice(-6)}`}
+          {/* Строка 3: Статистика */}
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-xs rounded">
+              {row.totalBets} ставок
             </span>
-          </div>
-
-          {/* Строка 4: Результативность */}
-          <div className="flex items-center justify-center h-5">
-            <span className="text-sm font-medium text-center">
-              Успешность: {row.successRate}%
+            <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">
+              {row.guessedBets} точных
             </span>
-          </div>
-
-          {/* Строка 5: Достижения */}
-          <div className="flex items-center justify-center h-8">
-            <div className="flex gap-2">
-              <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
-                {row.totalBets} ставок
-              </span>
-              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                {row.guessedBets} точных
-              </span>
-            </div>
+            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
+              {row.successRate}%
+            </span>
           </div>
         </div>
       </CardContent>
@@ -554,25 +541,33 @@ export default function Dashboard() {
 
   const BetRow = ({ b, index, m }: { b: Bet; index: number; m?: Match }) => {
     // Результат матча
-    const result = (['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number')
-      ? `${m?.home_score} — ${m?.away_score}`
-      : '—';
+    const hasResult = ['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number';
+    const result = hasResult ? `${m?.home_score} — ${m?.away_score}` : null;
 
     // Прогноз из ставки
     const forecast = b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2';
 
     return (
       <Card key={b.match_id} className="transition-colors hover:bg-muted/50">
-        <CardContent className="px-4 py-3">
-          <div className="grid grid-rows-5 gap-1 min-h-[100px]">
-            {/* Строка 1: Номер | Дата | Статус */}
-            <div className="flex items-center justify-between h-5">
+        <CardContent className="p-2">
+          <div className="flex flex-col gap-0">
+            {/* Строка 1: Номер | Дата/Лига/Тур | Статус */}
+            <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">
                 {index + 1} • С{b.id?.slice(-6) || '—'}
               </span>
-              <span className="text-xs text-center text-muted-foreground">
-                {m ? formatMsk(m.starts_at) : '—'}
-              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {m ? formatMsk(m.starts_at) : '—'}
+                </span>
+                <span className="text-muted-foreground">︙</span>
+                <span className="text-xs text-muted-foreground">
+                  {(m?.league || typeof m?.tour === 'number') ?
+                    `${m?.league}${typeof m?.tour === 'number' ? ` Тур ${m?.tour}` : ''}` :
+                    '—'
+                  }
+                </span>
+              </div>
               <span className={cn(
                 "px-2 py-0.5 text-[10px] font-medium rounded",
                 m?.status ? statusClass(m.status) : "bg-slate-100 text-slate-700"
@@ -581,42 +576,32 @@ export default function Dashboard() {
               </span>
             </div>
 
-            {/* Строка 2: Тур и лига */}
-            <div className="flex items-center justify-center h-5">
-              <span className="text-xs text-center text-muted-foreground">
-                {(m?.league || typeof m?.tour === 'number') ?
-                  `${m?.league}${typeof m?.tour === 'number' ? ` • Тур ${m?.tour}` : ''}` :
-                  '—'
-                }
-              </span>
-            </div>
-
-            {/* Строка 3: Команды */}
-            <div className="flex items-center justify-center h-6">
+            {/* Строка 2: Команды */}
+            <div className="flex items-center justify-center mt-1">
               <span className="text-sm font-medium text-center truncate">
                 {m?.home_team && m?.away_team ? `${m.home_team} — ${m.away_team}` : '—'}
               </span>
             </div>
 
-            {/* Строка 4: Результат */}
-            <div className="flex items-center justify-center h-5">
-              <span className="text-sm font-medium text-center">
-                {result}
-              </span>
-            </div>
-
-            {/* Строка 5: Прогноз */}
-            <div className="flex items-center justify-center h-8">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-1 bg-secondary text-foreground text-xs rounded">
-                  {forecast}
+            {/* Строка 3: Результат (только если есть) */}
+            {hasResult && (
+              <div className="flex items-center justify-center">
+                <span className="text-sm font-medium text-center">
+                  {result}
                 </span>
-                {typeof b.points === 'number' && b.points > 0 && (
-                  <span className="px-2 py-1 bg-green-600 text-white text-xs rounded font-medium">
-                    +{b.points} очков
-                  </span>
-                )}
               </div>
+            )}
+
+            {/* Строка 4: Прогноз */}
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <span className="px-2 py-0.5 bg-secondary text-foreground text-xs rounded">
+                {forecast}
+              </span>
+              {typeof b.points === 'number' && b.points > 0 && (
+                <span className="px-2 py-0.5 bg-green-600 text-white text-xs rounded font-medium">
+                  +{b.points} очков
+                </span>
+              )}
             </div>
           </div>
         </CardContent>
@@ -720,7 +705,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {/* Фильтр по лиге и туру */}
                 <div className="flex items-center justify-between mb-3">
-                  <Label className="text-lg font-semibold">Выбор события</Label>
+                  <Label className="text-lg font-semibold">Выбор</Label>
                   <div className="flex gap-2">
                     <Select value={leagueFilter} onValueChange={setLeagueFilter}>
                       <SelectTrigger className="w-[140px] h-9">
