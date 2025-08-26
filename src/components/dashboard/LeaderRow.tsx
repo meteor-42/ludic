@@ -17,7 +17,7 @@ export const LeaderRow = ({ row, index }: LeaderRowProps) => (
            № {index + 1}
           </span>
           <span className="text-xs font-medium text-green-600 flex items-center h-5">
-            ОЧКИ - {row.points} 
+            ОЧКИ - {row.points}
           </span>
         </div>
 
@@ -28,25 +28,25 @@ export const LeaderRow = ({ row, index }: LeaderRowProps) => (
           </span>
         </div>
 
-        {/* Строка 3: ID справа внизу | Статистика слева внизу */}
+        {/* Строка 3: Статистика справа внизу | ID слева внизу */}
         <div className="flex items-center justify-between h-5">
-          {/* Бейджи со статистикой слева */}
-          <div className="flex items-center gap-1 h-5">
-            <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded font-medium h-5 flex items-center justify-center">
-              {row.totalBets} - СТАВОК
-            </span>
-            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-medium h-5 flex items-center justify-center">
-              {row.guessedBets} - ВЕРНО
-            </span>
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded font-medium h-5 flex items-center justify-center">
-              {row.successRate}% - ТОЧНОСТЬ
-            </span>
-          </div>
-
-          {/* ID игрока справа */}
+          {/* ID игрока слева */}
           <span className="text-xs text-muted-foreground flex items-center h-5">
             ID: {row.user_id.slice(-6)}
           </span>
+
+          {/* Бейджи со статистикой справа */}
+          <div className="flex items-center gap-1 h-5">
+            <span className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded font-medium h-5 flex items-center justify-center">
+              {row.totalBets} - СТАВОК
+            </span>
+            <span className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded font-medium h-5 flex items-center justify-center">
+              {row.guessedBets} - ВЕРНО
+            </span>
+            <span className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded font-medium h-5 flex items-center justify-center">
+              {row.successRate}% - ТОЧНОСТЬ
+            </span>
+          </div>
         </div>
       </div>
     </CardContent>

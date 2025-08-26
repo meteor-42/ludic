@@ -8,7 +8,6 @@ export class ApiService {
   static async loadMatches(): Promise<Match[]> {
     const list = await pb.collection('matches').getList<Match>(1, 200, {
       sort: 'starts_at',
-      filter: 'is_visible = true',
     });
     return list.items.slice().sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   }

@@ -1,4 +1,3 @@
-
 export type Match = {
   id: string;
   league: string;
@@ -7,8 +6,6 @@ export type Match = {
   away_team: string;
   starts_at: string;
   status: string;
-  is_locked: boolean;
-  is_visible?: boolean;
   home_score?: number;
   away_score?: number;
   odd_home?: number;
