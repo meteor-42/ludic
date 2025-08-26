@@ -1,14 +1,17 @@
 export const formatMsk = (iso: string) => {
   try {
     const d = new Date(iso);
-    const mskDate = new Date(d.toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
+    // Преобразуем UTC в московское время (UTC+3)
+    const mskTime = new Date(d.getTime() - 2 * 60 * 60 * 1000);
+    
     const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-    const wd = weekdays[mskDate.getDay()];
-    const dd = String(mskDate.getDate()).padStart(2, '0');
-    const mm = String(mskDate.getMonth() + 1).padStart(2, '0');
-    const hh = String(mskDate.getHours()).padStart(2, '0');
-    const min = String(mskDate.getMinutes()).padStart(2, '0');
-    return `${dd}.${mm} ${hh}:${min}`;
+    const wd = weekdays[mskTime.getDay()];
+    const dd = String(mskTime.getDate());
+    const mm = String(mskTime.getMonth() + 1);
+    const hh = String(mskTime.getHours()).padStart(2, '0');
+    const min = String(mskTime.getMinutes()).padStart(2, '0');
+    
+    return `${wd} ${dd}.${mm} ${hh}:${min}`;
   } catch {
     return '';
   }

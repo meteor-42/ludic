@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { MatchRow } from "./MatchRow";
+import { MatchRow } from './MatchRow';
 import type { Match, Bet } from "@/types/dashboard";
 
 interface MatchesTabProps {

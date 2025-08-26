@@ -19,20 +19,19 @@ export type Bet = {
   user_id: string;
   pick: "H" | "D" | "A";
   points?: number;
+  display_name?: string;
 };
 
 export type PBUser = {
   id: string;
   email?: string;
   display_name?: string;
-  displayed_name?: string
 };
 
 export type PBUserRecord = {
   id: string;
   email?: string;
   display_name?: string;
-  displayed_name?: string
 };
 
 export type AuthUser = PBUser | null;
