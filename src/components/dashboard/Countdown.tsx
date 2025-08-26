@@ -17,16 +17,21 @@ interface TimeLeft {
 export const Countdown = ({ targetDate, className }: CountdownProps) => {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
 
+  // Задайте нужное смещение здесь (в часах)
+  const shift = 3; // +3 часа для Москвы
+
   useEffect(() => {
     const calculateTimeLeft = (): TimeLeft => {
       try {
-        // Получаем текущее московское время
+        // Получаем текущее время
         const now = new Date();
-        const moscowTime = new Date(now.toLocaleString("en-US", {timeZone: "Europe/Moscow"}));
-
-        // Парсим целевую дату (уже в московском времени)
+        
+        // Применяем смещение часового пояса к текущему времени
+        const currentTimeWithShift = new Date(now.getTime() + (shift * 60 * 60 * 1000));
+        
+        // Целевая дата (уже в нужном часовом поясе из базы)
         const target = new Date(targetDate);
-        const difference = target.getTime() - moscowTime.getTime();
+        const difference = target.getTime() - currentTimeWithShift.getTime();
 
         if (difference <= 0) {
           return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
@@ -53,7 +58,7 @@ export const Countdown = ({ targetDate, className }: CountdownProps) => {
 
     // Очищаем интервал при размонтировании
     return () => clearInterval(interval);
-  }, [targetDate]);
+  }, [targetDate, shift]); // Добавил shift в зависимости
 
   const formatTime = (): string => {
     if (timeLeft.total <= 0) {
