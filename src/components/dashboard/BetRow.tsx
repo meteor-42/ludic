@@ -100,7 +100,7 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
             {/* Отображение очков с именем игрока */}
             <div className="flex items-center gap-1">
               <span className="text-xs text-muted-foreground">
-                {b.display_name || `Игрок ${b.user_id?.slice(-6) || '—'}`} |
+                {b.display_name|| `Игрок ${b.user_id?.slice(-6) || '—'}`} |
               </span>
               {hasPoints ? (
                 b.points === 3 ? (

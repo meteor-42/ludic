@@ -19,7 +19,6 @@ export type Bet = {
   user_id: string;
   pick: "H" | "D" | "A";
   points?: number;
-  display_name?: string;
 };
 
 export type PBUser = {
