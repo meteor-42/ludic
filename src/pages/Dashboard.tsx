@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Types
 import type { Match, Bet, AuthUser, Stats, LeaderData } from "@/types/dashboard";
@@ -19,6 +20,7 @@ import { ApiService } from "@/services/api";
 export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Auth state
   const [user, setUser] = useState<AuthUser>(null);
@@ -142,7 +144,9 @@ export default function Dashboard() {
       if (u?.id) {
         loadUserBets(u.id);
         const name = u.display_name || u.email || 'Игрок';
-        toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default' });
+        if (!isMobile) {
+          toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default' });
+        }
       }
     } else {
       const rec = ApiService.authStore.record as unknown as AuthUser;
@@ -150,7 +154,9 @@ export default function Dashboard() {
       if (rec?.id) {
         loadUserBets(rec.id);
         const name = rec.display_name || rec.email || 'Игрок';
-        toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default' });
+        if (!isMobile) {
+          toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default' });
+        }
       }
     }
 

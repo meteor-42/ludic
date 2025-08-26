@@ -13,15 +13,17 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
   // Результат матча
   const hasResult = ['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number';
   const result = hasResult ? `${m?.home_score} — ${m?.away_score}` : null;
-  
+
   // Проверка на выигрыш ставки
   const isWon = typeof b.points === 'number' && b.points === 3;
+  const isLost = typeof b.points === 'number' && b.points === 1;
   const hasPoints = typeof b.points === 'number';
 
   return (
     <Card key={b.match_id} className={cn(
       "transition-colors hover:bg-muted/50",
-      isWon && "bg-green-50 border-green-200"
+      isWon && "bg-green-50 border-green-200",
+      isLost && "bg-red-50 border-red-200"
     )}>
       <CardContent className="p-3">
         <div className="flex flex-col gap-2">
@@ -60,29 +62,29 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
                 </span>
               )}
             </div>
-            
+
             {/* Выбор ставки - прижат к правому краю с более заметной рамкой */}
             <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1 bg-white">
               <span className={cn(
                 "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center",
-                b.pick === 'H' 
-                  ? "bg-primary text-primary-foreground" 
+                b.pick === 'H'
+                  ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground opacity-70"
               )}>
                 П1
               </span>
               <span className={cn(
                 "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center",
-                b.pick === 'D' 
-                  ? "bg-primary text-primary-foreground" 
+                b.pick === 'D'
+                  ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground opacity-70"
               )}>
                 Х
               </span>
               <span className={cn(
                 "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center",
-                b.pick === 'A' 
-                  ? "bg-primary text-primary-foreground" 
+                b.pick === 'A'
+                  ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground opacity-70"
               )}>
                 П2
@@ -106,6 +108,10 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
                 b.points === 3 ? (
                   <span className="text-green-600 text-xs font-medium">
                     +3
+                  </span>
+                ) : b.points === 1 ? (
+                  <span className="text-red-600 text-xs font-bold">
+                    Проигрыш
                   </span>
                 ) : (
                   <span className="text-black text-xs font-medium">

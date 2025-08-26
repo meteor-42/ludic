@@ -1,6 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { BetRow } from "./BetRow";
 import type { Bet, Match } from "@/types/dashboard";
@@ -66,15 +66,14 @@ export const AllBetsTab = ({
           className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary h-9"
         />
         <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">Все игроки:</Label>
-          <Button
-            variant={showAllBets ? "default" : "outline"}
-            size="sm"
-            onClick={onShowAllBetsToggle}
-            className="h-9"
-          >
-            {showAllBets ? "Да" : "Нет"}
-          </Button>
+          <Label htmlFor="all-players-switch" className="text-sm whitespace-nowrap cursor-pointer">
+            Все игроки
+          </Label>
+          <Switch
+            id="all-players-switch"
+            checked={showAllBets}
+            onCheckedChange={onShowAllBetsToggle}
+          />
         </div>
       </div>
 
