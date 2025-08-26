@@ -16,8 +16,6 @@ import { AllBetsTab } from "@/components/dashboard/AllBetsTab";
 // Services
 import { ApiService } from "@/services/api";
 
-
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();

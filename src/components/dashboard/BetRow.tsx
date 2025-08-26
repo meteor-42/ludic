@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Bet, Match } from "@/types/dashboard";
@@ -14,25 +13,25 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
   // Результат матча
   const hasResult = ['completed'].includes((m?.status||'').toLowerCase()) && typeof m?.home_score === 'number' && typeof m?.away_score === 'number';
   const result = hasResult ? `${m?.home_score} — ${m?.away_score}` : null;
-
-  // Прогноз из ставки
-  const forecast = b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2';
+  
+  // Проверка на выигрыш ставки
+  const isWon = typeof b.points === 'number' && b.points > 0;
 
   return (
-    <Card key={b.match_id} className="transition-colors hover:bg-muted/50">
-      <CardContent className="p-2">
-        <div className="flex flex-col gap-0">
-          {/* Строка 1: Номер | Дата/Лига/Тур | Статус */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">
-              {index + 1} • С{b.id?.slice(-6) || '—'}
-            </span>
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground">
+    <Card key={b.match_id} className={cn(
+      "transition-colors hover:bg-muted/50",
+      isWon && "bg-green-50 border-green-200"
+    )}>
+      <CardContent className="p-3">
+        <div className="flex flex-col gap-2">
+          {/* Строка 1: Дата/Лига/Тур | Статус - такая же высота как нижняя */}
+          <div className="flex items-center justify-between h-5"> {/* Добавлена высота h-5 */}
+            <div className="flex items-center gap-2 h-5"> {/* Добавлена высота h-5 */}
+              <span className="text-xs font-medium text-muted-foreground flex items-center h-5"> {/* Добавлена высота h-5 */}
                 {m ? formatMsk(m.starts_at) : '—'}
               </span>
-              <span className="text-muted-foreground">︙</span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-muted-foreground flex items-center h-5">•</span> {/* Добавлена высота h-5 */}
+              <span className="text-xs text-muted-foreground flex items-center h-5"> {/* Добавлена высота h-5 */}
                 {(m?.league || typeof m?.tour === 'number') ?
                   `${m?.league}${typeof m?.tour === 'number' ? ` Тур ${m?.tour}` : ''}` :
                   '—'
@@ -40,39 +39,65 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
               </span>
             </div>
             <span className={cn(
-              "px-2 py-0.5 text-[10px] font-medium rounded",
+              "px-2 py-1 text-[10px] font-medium rounded h-5 flex items-center justify-center",
               m?.status ? statusClass(m.status) : "bg-slate-100 text-slate-700"
             )}>
               {m?.status ? statusLabel(m.status) : '—'}
             </span>
           </div>
 
-          {/* Строка 2: Команды */}
-          <div className="flex items-center justify-center mt-1">
+          {/* Строка 2: Команды и счет */}
+          <div className="flex items-center justify-center gap-2">
             <span className="text-sm font-medium text-center truncate">
-              {m?.home_team && m?.away_team ? `${m.home_team} — ${m.away_team}` : '—'}
+              {m?.home_team && m?.away_team ? `${m.home_team} ～ ${m.away_team}` : '～'}
             </span>
-          </div>
-
-          {/* Строка 3: Результат (только если есть) */}
-          {hasResult && (
-            <div className="flex items-center justify-center">
-              <span className="text-sm font-medium text-center">
-                {result}
-              </span>
-            </div>
-          )}
-
-          {/* Строка 4: Прогноз */}
-          <div className="flex items-center justify-center gap-2 mt-1">
-            <span className="px-2 py-0.5 bg-secondary text-foreground text-xs rounded">
-              {forecast}
-            </span>
-            {typeof b.points === 'number' && b.points > 0 && (
-              <span className="px-2 py-0.5 bg-green-600 text-white text-xs rounded font-medium">
-                +{b.points} очков
+            {hasResult && (
+              <span className="text-sm font-bold text-muted-foreground">
+                ({result})
               </span>
             )}
+          </div>
+
+          {/* Строка 3: Прогноз и номер ставки */}
+          <div className="flex items-center justify-between h-5"> {/* Добавлена высота h-5 */}
+            {/* Бейдж с номером и ID ставки */}
+            <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded h-5 flex items-center justify-center">
+              {index + 1} • С{b.id?.slice(-6) || '—'}
+            </span>
+
+            {/* Прогноз - ВСЕГДА показываем все варианты */}
+            <div className="flex items-center gap-1 h-5"> {/* Добавлена высота h-5 */}
+              <span className={cn(
+                "px-2 py-1 text-xs rounded h-5 flex items-center justify-center",
+                b.pick === 'H' 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-secondary text-muted-foreground opacity-50"
+              )}>
+                П1
+              </span>
+              <span className={cn(
+                "px-2 py-1 text-xs rounded h-5 flex items-center justify-center",
+                b.pick === 'D' 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-secondary text-muted-foreground opacity-50"
+              )}>
+                Х
+              </span>
+              <span className={cn(
+                "px-2 py-1 text-xs rounded h-5 flex items-center justify-center",
+                b.pick === 'A' 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-secondary text-muted-foreground opacity-50"
+              )}>
+                П2
+              </span>
+              
+              {isWon && (
+                <span className="px-2 py-1 bg-green-600 text-white text-xs rounded font-medium h-5 flex items-center justify-center">
+                  +{b.points}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
