@@ -17,6 +17,7 @@ export type Bet = {
   id: string; // PB record id
   match_id: string;
   user_id: string;
+  display_name?: string; // Имя пользователя
   pick: "H" | "D" | "A";
   points?: number;
 };
@@ -25,12 +26,15 @@ export type PBUser = {
   id: string;
   email?: string;
   display_name?: string;
+  created?: string;
 };
 
 export type PBUserRecord = {
   id: string;
   email?: string;
   display_name?: string;
+  displayed_name?: string; // альтернативное поле для имени
+  created?: string;
 };
 
 export type AuthUser = PBUser | null;
@@ -51,4 +55,5 @@ export type LeaderData = {
   totalBets: number;
   guessedBets: number;
   successRate: number;
+  created?: string; // Дата регистрации пользователя
 };

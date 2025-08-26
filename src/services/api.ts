@@ -17,6 +17,15 @@ export class ApiService {
       filter: `user_id = "${userId}"`,
     });
 
+    // Получаем информацию о пользователе для его имени
+    let displayName = '';
+    try {
+      const user = await pb.collection('users').getOne<PBUserRecord>(userId);
+      displayName = (user.display_name || user.displayed_name || '').trim() || `Игрок ${userId.slice(-6)}`;
+    } catch {
+      displayName = `Игрок ${userId.slice(-6)}`;
+    }
+
     const mapped: Record<string, Bet> = {};
     for (const item of list.items) {
       if (item.match_id) {
@@ -24,6 +33,7 @@ export class ApiService {
           id: item.id as string,
           match_id: item.match_id as string,
           user_id: item.user_id as string,
+          display_name: displayName,
           pick: item.pick as "H" | "D" | "A",
           points: item.points as number | undefined,
         };
@@ -34,7 +44,24 @@ export class ApiService {
 
   static async loadAllBets(): Promise<Bet[]> {
     const betsList = await pb.collection('bets').getList<Bet>(1, 1000, {});
-    return betsList.items as Bet[];
+
+    // Загружаем список пользователей для получения их имен
+    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
+    const usersMap = new Map<string, string>();
+
+    // Создаем карту соответствия ID пользователя и его имени
+    for (const user of usersList.items) {
+      const name = (user.display_name || user.displayed_name || '').trim() || `Игрок ${user.id.slice(-6)}`;
+      usersMap.set(user.id, name);
+    }
+
+    // Добавляем имена пользователей к ставкам
+    const betsWithNames = betsList.items.map(bet => ({
+      ...bet,
+      display_name: usersMap.get(bet.user_id as string) || `Игрок ${(bet.user_id as string || '').slice(-6)}`
+    }));
+
+    return betsWithNames as Bet[];
   }
 
   static async loadStats(): Promise<Stats> {
@@ -84,7 +111,8 @@ export class ApiService {
         name: (u.display_name || u.displayed_name || '').trim() || `ID: ${u.id}`,
         totalBets,
         guessedBets,
-        successRate
+        successRate,
+        created: u.created // Добавляем дату регистрации
       };
     });
 
