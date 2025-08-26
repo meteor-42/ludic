@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PocketBase from "pocketbase";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,9 +30,7 @@ export default function LoginForm() {
         description: `Добро пожаловать, ${authData.record.display_name || authData.record.email}!`,
       });
 
-      // Сохраняем данные пользователя в localStorage для доступа на других страницах
       localStorage.setItem('user', JSON.stringify(authData.record));
-
       navigate("/dashboard");
     } catch (err: unknown) {
       console.error('Login error:', err);
@@ -48,61 +46,49 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-subtle">
-      <Card className="w-full max-w-sm shadow-elevated border-0 backdrop-blur-sm">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-sm border rounded-none shadow-none">
         <CardHeader className="pb-6 text-center">
-          <CardTitle className="text-2xl font-semibold tracking-tight">Вход в систему</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Введите email и пароль для входа
-          </CardDescription>
+          <CardTitle className="text-md">В Х О Д</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email
-              </Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11 transition-smooth focus:ring-2 focus:ring-primary/20"
                 placeholder="example@domain.com"
                 required
+                className="rounded-none"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">
-                Пароль
-              </Label>
+              <Label htmlFor="password">Пароль</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-11 transition-smooth focus:ring-2 focus:ring-primary/20"
                 placeholder="••••••••"
                 required
+                className="rounded-none"
               />
             </div>
             {error && (
-              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/20">
+              <div className="p-3 text-sm text-destructive bg-destructive/10 border">
                 {error}
               </div>
             )}
             <Button
-              className="w-full h-11 mt-6 transition-smooth hover:scale-[0.98] active:scale-[0.96]"
+              className="w-full rounded-none"
               disabled={loading}
               type="submit"
             >
               {loading ? "Входим..." : "Войти"}
             </Button>
-            <div className="text-center mt-4">
-              <p className="text-xs text-muted-foreground">
-                Введите ваши учетные данные для входа
-              </p>
-            </div>
           </form>
         </CardContent>
       </Card>
