@@ -11,7 +11,7 @@ async function start() {
     try {
       // Получаем только завершенные матчи
       const matches = await pb.collection('matches').getFullList({
-        filter: 'status = "completed" || status = "live"'
+        filter: 'status = "completed"'
       });
 
       for (const match of matches) {
