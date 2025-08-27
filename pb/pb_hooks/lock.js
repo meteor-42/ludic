@@ -41,8 +41,7 @@ async function start() {
             if (matchMoscowTime && matchMoscowTime <= currentMoscowTime) {
               // Время начала матча по Москве наступило
               await pb.collection('matches').update(match.id, {
-                status: 'live',
-                is_locked: true
+                status: 'live'
               });
               
               console.log(`Матч ${match.id} начался! Статус изменен на "live", is_locked = true`);
