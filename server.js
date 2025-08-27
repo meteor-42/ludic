@@ -104,6 +104,9 @@ const apiProxy = createProxyMiddleware({
   logLevel: 'warn', // Меняем на warn для меньшего спама в логах
   timeout: 30000, // 30 секунд таймаут
   proxyTimeout: 30000,
+  pathRewrite: {
+    '^/api': '' // Убираем префикс /api при проксировании
+  },
   on: {
     proxyReq: (proxyReq, req, res) => {
       // Логируем только в debug режиме
