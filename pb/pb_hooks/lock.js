@@ -1,6 +1,6 @@
 import PocketBase from 'pocketbase';
 
-const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
+const pb = new PocketBase('http://localhost:8090');
 
 // Функция для получения текущего московского времени в формате ISO
 function getCurrentMoscowTime() {
@@ -24,26 +24,26 @@ async function start() {
     setInterval(async () => {
       try {
         const currentMoscowTime = parseMoscowTime(getCurrentMoscowTime());
-        
+
         console.log(`Текущее московское время: ${currentMoscowTime.toISOString()}`);
-        
+
         // Получаем матчи которые еще не начались (upcoming)
         const matches = await pb.collection('matches').getFullList({
           filter: 'status = "upcoming"'
         });
 
-        for (const match of matches) {      
+        for (const match of matches) {
           if (match.starts_at) {
             const matchMoscowTime = parseMoscowTime(match.starts_at);
             console.log(`Матч ${match.id}: МСК время начала = ${matchMoscowTime.toISOString()}`);
-            
+
             // Сравниваем московское время начала матча с текущим московским временем
             if (matchMoscowTime && matchMoscowTime <= currentMoscowTime) {
               // Время начала матча по Москве наступило
               await pb.collection('matches').update(match.id, {
                 status: 'live'
               });
-              
+
               console.log(`Матч ${match.id} начался! Статус изменен на "live", is_locked = true`);
               console.log(`Время начала (МСК): ${matchMoscowTime.toISOString()}`);
               console.log(`Текущее московское время: ${currentMoscowTime.toISOString()}`);
