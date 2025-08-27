@@ -1,6 +1,6 @@
 import PocketBase from 'pocketbase';
 
-const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
+const pb = new PocketBase('http://localhost:8090');
 
 async function start() {
   try {
@@ -29,10 +29,10 @@ async function start() {
 
         for (const bet of bets) {
           let points = 0;
-          
+
           // Начисляем очки только для завершенных матчей
           points = (bet.pick === match.result) ? 3 : 1;
-          
+
           // Обновляем только если очки изменились
           if (bet.points !== points) {
             await pb.collection('bets').update(bet.id, { points });
