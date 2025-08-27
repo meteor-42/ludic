@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { API_URL } from "@/config/api.config";
 
-const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
+const pb = new PocketBase(API_URL);
 
 export default function LoginForm() {
   const navigate = useNavigate();
