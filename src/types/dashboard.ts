@@ -14,10 +14,10 @@ export type Match = {
 };
 
 export type Bet = {
-  id: string; // PB record id
+  id: string;
   match_id: string;
   user_id: string;
-  display_name?: string; // Имя пользователя
+  display_name?: string;
   pick: "H" | "D" | "A";
   points?: number;
 };
@@ -53,5 +53,5 @@ export type LeaderData = {
   totalBets: number;
   guessedBets: number;
   successRate: number;
-  created?: string; // Дата регистрации пользователя
+  created?: string;
 };
