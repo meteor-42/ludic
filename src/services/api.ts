@@ -12,18 +12,19 @@ export class ApiService {
     return list.items.slice().sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   }
 
-  static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
+static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
+  try {
     const list = await pb.collection('bets').getList<Bet>(1, 200, {
       filter: `user_id = "${userId}"`,
     });
 
-    // Получаем информацию о пользователе для его имени
-    let displayName = '';
-    try {
-      const user = await pb.collection('users').getOne<PBUserRecord>(userId);
-      displayName = (user.display_name || user.displayed_name || '').trim() || `Игрок ${userId.slice(-6)}`;
-    } catch {
-      displayName = `Игрок ${userId.slice(-6)}`;
+    // Вместо запроса к коллекции users, используем данные из authStore
+    // или кэшируем имена пользователей отдельно
+    let displayName = `Игрок ${userId.slice(-6)}`;
+    
+    // Если пользователь авторизован и это текущий пользователь, используем его данные
+    if (pb.authStore.model && pb.authStore.model.id === userId) {
+      displayName = (pb.authStore.model.display_name || '').trim() || displayName;
     }
 
     const mapped: Record<string, Bet> = {};
@@ -40,7 +41,11 @@ export class ApiService {
       }
     }
     return mapped;
+  } catch (error) {
+    console.error('Error loading user bets:', error);
+    return {};
   }
+}
 
   static async loadAllBets(): Promise<Bet[]> {
     const betsList = await pb.collection('bets').getList<Bet>(1, 1000, {});
@@ -51,7 +56,7 @@ export class ApiService {
 
     // Создаем карту соответствия ID пользователя и его имени
     for (const user of usersList.items) {
-      const name = (user.display_name || user.displayed_name || '').trim() || `Игрок ${user.id.slice(-6)}`;
+      const name = (user.display_name || '').trim() || `Игрок ${user.id.slice(-6)}`;
       usersMap.set(user.id, name);
     }
 
@@ -108,7 +113,7 @@ export class ApiService {
       return {
         user_id: u.id,
         points: aggPoints.get(u.id) || 0,
-        name: (u.display_name || u.displayed_name || '').trim() || `ID: ${u.id}`,
+        name: (u.display_name || '').trim() || `ID: ${u.id}`,
         totalBets,
         guessedBets,
         successRate,

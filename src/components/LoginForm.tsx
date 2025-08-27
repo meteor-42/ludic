@@ -25,11 +25,6 @@ export default function LoginForm() {
     try {
       const authData = await pb.collection('users').authWithPassword(email, password);
 
-      toast({
-        title: "Успешный вход",
-        description: `Добро пожаловать, ${authData.record.display_name || authData.record.email}!`,
-      });
-
       localStorage.setItem('user', JSON.stringify(authData.record));
       navigate("/dashboard");
     } catch (err: unknown) {

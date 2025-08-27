@@ -31,9 +31,7 @@ export type PBUser = {
 
 export type PBUserRecord = {
   id: string;
-  email?: string;
   display_name?: string;
-  displayed_name?: string; // альтернативное поле для имени
   created?: string;
 };
 

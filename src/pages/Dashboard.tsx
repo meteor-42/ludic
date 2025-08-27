@@ -143,20 +143,14 @@ export default function Dashboard() {
       setUser(u);
       if (u?.id) {
         loadUserBets(u.id);
-        const name = u.display_name || u.email || 'Игрок';
-        if (!isMobile) {
-          toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default' });
-        }
+        const name = u.display_name || 'Игрок';
       }
     } else {
       const rec = ApiService.authStore.record as unknown as AuthUser;
       setUser(rec);
       if (rec?.id) {
         loadUserBets(rec.id);
-        const name = rec.display_name || rec.email || 'Игрок';
-        if (!isMobile) {
-          toast({ title: `Добро пожаловать, ${name}`, description: 'Делайте ваши прогнозы.', duration: 3000, variant: 'default' });
-        }
+        const name = rec.display_name || 'Игрок';
       }
     }
 
