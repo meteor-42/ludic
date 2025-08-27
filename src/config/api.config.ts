@@ -4,15 +4,12 @@
 
 const isDevelopment = import.meta.env.MODE === 'development';
 
-// В production все запросы идут через Express сервер с префиксом /api
-// В development Vite проксирует на локальный PocketBase
-export const API_URL = isDevelopment
-  ? 'http://localhost:8090' // Для разработки с Vite proxy
-  : '/api'; // В production через Express proxy
+// Оба прокси (Vite и Express) убирают префикс /api при проксировании на PocketBase
+// Поэтому всегда используем /api как базовый URL
+export const API_URL = '/api'; // Единый URL для всех режимов
 
-export const WS_URL = isDevelopment
-  ? 'ws://localhost:8090'
-  : '/pb_ws';
+// WebSocket URL также унифицирован
+export const WS_URL = '/pb_ws';
 
 export default {
   API_URL,
