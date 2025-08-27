@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:8090',
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''), // Убираем префикс /api
       },
       '/pb_ws': {
         target: 'ws://localhost:8090',
