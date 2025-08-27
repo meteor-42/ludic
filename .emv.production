@@ -1,0 +1,75 @@
+# ========================================
+# Production Configuration for Ludic Project
+# ========================================
+# This is the production environment file
+# Copy to .env for production deployment:
+# cp .env.production .env
+
+# ========================================
+# Server Environment
+# ========================================
+NODE_ENV=production
+
+# ========================================
+# Domain Configuration
+# ========================================
+# Primary domain without www and protocol
+PRIMARY_DOMAIN=xn--d1aigb4b.xn--p1ai
+
+# Redirect settings
+ENABLE_WWW_REDIRECT=true  # Redirect www to non-www
+FORCE_HTTPS=true          # Redirect HTTP to HTTPS (requires SSL certificates)
+
+# ========================================
+# Server Ports
+# ========================================
+PORT=443           # HTTPS port (main)
+HTTP_PORT=80       # HTTP port (for redirect to HTTPS)
+
+# ========================================
+# PocketBase Configuration
+# ========================================
+# If PocketBase is running on the same server (recommended)
+POCKETBASE_URL=http://127.0.0.1:8090
+
+# If PocketBase is on a different server:
+# POCKETBASE_URL=http://pocketbase.example.com:8090
+
+# ========================================
+# SSL Certificates (Production)
+# ========================================
+# Let's Encrypt certificates (auto-renewed)
+TLS_KEY=/etc/letsencrypt/live/xn--d1aigb4b.xn--p1ai/privkey.pem
+TLS_CERT=/etc/letsencrypt/live/xn--d1aigb4b.xn--p1ai/fullchain.pem
+TLS_CA=/etc/letsencrypt/live/xn--d1aigb4b.xn--p1ai/chain.pem
+
+# ========================================
+# GitHub Webhook for Auto-deployment
+# ========================================
+# Generate secure token: openssl rand -hex 32
+DEPLOY_TOKEN=change_this_to_secure_random_token
+
+# ========================================
+# API Configuration
+# ========================================
+# Frontend will use these in production build
+VITE_API_URL=/api
+VITE_MODE=production
+
+# ========================================
+# Debugging
+# ========================================
+DEBUG=false  # Set to true for verbose proxy logs
+
+# ========================================
+# PM2 Process Manager
+# ========================================
+PM2_NAME=ludic-server
+PM2_INSTANCES=1
+PM2_MAX_MEMORY_RESTART=1G
+
+# ========================================
+# Logging
+# ========================================
+LOG_LEVEL=info
+LOG_DIR=./logs
