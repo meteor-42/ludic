@@ -39,6 +39,16 @@ if (!useSSL && FORCE_HTTPS && NODE_ENV === 'production') {
   console.warn('WARNING: SSL certificates not found. Running in HTTP mode.');
 }
 
+// Block access to dotfiles and sensitive files
+app.use((req, res, next) => {
+  const url = req.path || '';
+  // deny any path segment starting with a dot or sensitive filenames
+  if (/\/(?:\.|\.env|\.git|\.DS_Store|\.hg|\.svn)/.test(url) || url === '/.env' || url.startsWith('/.git')) {
+    return res.status(404).end();
+  }
+  next();
+});
+
 // Simple colored request logger
 app.use((req, res, next) => {
   const start = Date.now();
