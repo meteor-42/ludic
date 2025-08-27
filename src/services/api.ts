@@ -1,7 +1,9 @@
 import PocketBase from "pocketbase";
 import type { Match, Bet, Stats, LeaderData, PBUser, PBUserRecord } from "@/types/dashboard";
+import { API_URL } from "@/config/api.config";
 
-const pb = new PocketBase('http://xn--d1aigb4b.xn--p1ai:8090');
+// Используем конфигурацию из api.config.ts для правильного проксирования
+const pb = new PocketBase(API_URL);
 pb.autoCancellation(false);
 
 export class ApiService {
@@ -21,7 +23,7 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
     // Вместо запроса к коллекции users, используем данные из authStore
     // или кэшируем имена пользователей отдельно
     let displayName = `Игрок ${userId.slice(-6)}`;
-    
+
     // Если пользователь авторизован и это текущий пользователь, используем его данные
     if (pb.authStore.model && pb.authStore.model.id === userId) {
       displayName = (pb.authStore.model.display_name || '').trim() || displayName;
