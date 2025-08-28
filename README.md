@@ -67,6 +67,7 @@ sudo systemctl status pocketbase --no-pager
 Проверка API локально на сервере:
 ```bash
 curl -s http://127.0.0.1:8090/api/health
+{"message":"API is healthy.","code":200,"data":{}}
 ```
 
 ## 3) Статика фронта
@@ -87,58 +88,59 @@ sudo rsync -av --delete ./dist/ /var/www/ludic/site/
 ```nginx
 # /etc/nginx/sites-available/ludic.conf
 server {
-  listen 80;
-  server_name xn--d1aigb4b.xn--p1ai www.xn--d1aigb4b.xn--p1ai;
-  return 301 https://xn--d1aigb4b.xn--p1ai$request_uri;
+    listen 80;
+    server_name xn--d1aigb4b.xn--p1ai www.xn--d1aigb4b.xn--p1ai;
+    return 301 https://xn--d1aigb4b.xn--p1ai$request_uri;
 }
 
 server {
-  listen 443 ssl http2;
-  server_name xn--d1aigb4b.xn--p1ai;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name xn--d1aigb4b.xn--p1ai;
 
-  ssl_certificate     /etc/letsencrypt/live/xn--d1aigb4b.xn--p1ai/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/xn--d1aigb4b.xn--p1ai/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/xn--d1aigb4b.xn--p1ai/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/xn--d1aigb4b.xn--p1ai/privkey.pem;
 
-  root /var/www/ludic/site;
-  index index.html;
+    root /var/www/ludic/site;
+    index index.html;
 
-  # Статические ассеты Vite (immutable)
-  location /assets/ {
-    try_files $uri =404;
-    access_log off;
-    expires 1y;
-    add_header Cache-Control "public, immutable";
-    types { application/javascript js; } # иногда помогает отдавать корректный mime
-  }
+    # Статические ассеты
+    location /assets/ {
+        try_files $uri =404;
+        access_log off;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
 
-  # API -> PocketBase
-  location /api/ {
-    proxy_pass         http://127.0.0.1:8090/;
-    proxy_http_version 1.1;
-    proxy_set_header   Host $host;
-    proxy_set_header   X-Real-IP $remote_addr;
-    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-    proxy_set_header   Connection "";
-    proxy_read_timeout 60s;
-  }
+    # API -> PocketBase
+    location /api/ {
+        proxy_pass         http://127.0.0.1:8090/api/;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   Connection "";
+        proxy_read_timeout 60s;
+    }
 
-  # WebSocket -> PocketBase
-  location /pb_ws {
-    proxy_pass         http://127.0.0.1:8090;
-    proxy_http_version 1.1;
-    proxy_set_header   Upgrade $http_upgrade;
-    proxy_set_header   Connection "upgrade";
-    proxy_set_header   Host $host;
-    proxy_set_header   X-Real-IP $remote_addr;
-    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header   X-Forwarded-Proto $scheme;
-  }
+    # WebSocket -> PocketBase
+    #location /pb_ws {
+    #    proxy_pass         http://127.0.0.1:8090/pb_ws/;
+    #    proxy_http_version 1.1;
+    #    proxy_set_header   Upgrade $http_upgrade;
+    #    proxy_set_header   Connection "upgrade";
+    #    proxy_set_header   Host $host;
+    #    proxy_set_header   X-Real-IP $remote_addr;
+    #    proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+    #    proxy_set_header   X-Forwarded-Proto $scheme;
+    #}
 
-  # SPA fallback
-  location / {
-    try_files $uri /index.html;
-  }
+    # SPA fallback
+    location / {
+        try_files $uri /index.html;
+    }
 }
 ```
 
@@ -157,7 +159,7 @@ curl -s https://xn--d1aigb4b.xn--p1ai/api/health
 
 ## 5) Важные замечания
 
-- Фронтенд уже настроен на единый базовый путь API `/api` и WS `/pb_ws`. Nginx проксирует их на PocketBase, поэтому дополнительных правок в коде не требуется.
+- Фронтенд уже настроен на единый базовый путь API `/api`. Nginx проксирует их на PocketBase, поэтому дополнительных правок в коде не требуется.
 - Не нужен Node/Express/PM2 в продакшене — меньше процессов и точек отказа.
 - Если у вас SELinux/ufw/firewalld, откройте нужные порты (443/80 локально, 8090 только для localhost). Пример для ufw:
   ```bash
@@ -165,18 +167,6 @@ curl -s https://xn--d1aigb4b.xn--p1ai/api/health
   sudo ufw allow 443/tcp
   ```
 - Для автопродления сертификатов Let’s Encrypt используйте certbot timer/unit (обычно ставится автоматически).
-
-## 6) Диагностика проблем
-
-- Фронт отдаётся, но логин зависает:
-  - Проверьте, что PocketBase запущен: `systemctl status pocketbase`, `curl -s http://127.0.0.1:8090/api/health`
-  - Посмотрите логи Nginx: `journalctl -u nginx -e` и `/var/log/nginx/{access,error}.log`
-- Ошибка `ECONNRESET` при запросах на `/api`:
-  - Обычно это означает, что PocketBase недоступен/падает. Проверьте systemd статус и логи PB.
-- Статический файл не находится:
-  - Убедитесь, что `rsync -av --delete ./dist/ /var/www/ludic/site/` выполнен и `root` в nginx указывает на ту же директорию.
-
-Готово: после этих шагов сайт работает по адресу https://xn--d1aigb4b.xn--p1ai, фронт отдаётся Nginx, а все запросы на `/api` и `/pb_ws` корректно проксируются в PocketBase на `127.0.0.1:8090`.
 
 # Production Checks (Nginx + Express + PocketBase)
 
@@ -216,10 +206,7 @@ curl -i https://xn--d1aigb4b.xn--p1ai/.env
 
 - Preflight for POST with custom headers
 ```
-curl -i -X OPTIONS https://xn--d1aigb4b.xn--p1ai/api/collections/users/auth-with-password \
-  -H "Origin: https://xn--d1aigb4b.xn--p1ai" \
-  -H "Access-Control-Request-Method: POST" \
-  -H "Access-Control-Request-Headers: content-type,authorization"
+curl -i -X OPTIONS https://xn--d1aigb4b.xn--p1ai/api/collections/users/auth-with-password -H "Origin: https://xn--d1aigb4b.xn--p1ai" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type,authorization"
 ```
 
 Expected: 204 No Content, Access-Control-Allow-* headers present.
@@ -228,16 +215,7 @@ Expected: 204 No Content, Access-Control-Allow-* headers present.
 
 - Password auth
 ```
-curl -i -X POST https://xn--d1aigb4b.xn--p1ai/api/collections/users/auth-with-password \
-  -H "Content-Type: application/json" \
-  -d '{"identity":"alisa.palmieri@ya.ru","password":"bet"}'
-```
-
-- Pretty output (requires jq locally)
-```
-curl -sS -X POST https://xn--d1aigb4b.xn--p1ai/api/collections/users/auth-with-password \
-  -H "Content-Type: application/json" \
-  -d '{"identity":"alisa.palmieri@ya.ru","password":"bet"}' | jq
+curl -i -X POST https://xn--d1aigb4b.xn--p1ai/api/collections/users/auth-with-password -H "Content-Type: application/json" -d '{"identity":"alisa.palmieri@ya.ru","password":"deface"}'
 ```
 
 - Authorized request with Bearer token (replace PB_TOKEN from login response)
@@ -252,21 +230,13 @@ curl -i https://xn--d1aigb4b.xn--p1ai/api/collections/bets/records \
   -H "Cookie: pb_auth=PB_COOKIE"
 ```
 
-## 5) No double /api
-
-- This must NOT work; ensures no accidental /api/api
-```
-curl -i https://xn--d1aigb4b.xn--p1ai/api/api/collections/users/auth-with-password
-```
-
 Expected: 404/502, but certainly not a valid API response.
 
 ## 6) Performance diagnostics
 
 - Verbose + timing breakdown
 ```
-curl -v -w "\nDNS:%{time_namelookup} TCP:%{time_connect} TLS:%{time_appconnect} TTFB:%{time_starttransfer} TOTAL:%{time_total}\n" \
-  -o /dev/null https://xn--d1aigb4b.xn--p1ai/api/health
+curl -v -w "\nDNS:%{time_namelookup} TCP:%{time_connect} TLS:%{time_appconnect} TTFB:%{time_starttransfer} TOTAL:%{time_total}\n" -o /dev/null https://xn--d1aigb4b.xn--p1ai/api/health
 ```
 
 - Check PocketBase directly from server (SSH into host where Express runs)
@@ -278,8 +248,7 @@ curl -i http://127.0.0.1:8090/api/health
 
 - Validate WS upgrade headers path (does not open a real WS)
 ```
-curl -i -H "Connection: Upgrade" -H "Upgrade: websocket" \
-  https://xn--d1aigb4b.xn--p1ai/pb_ws
+curl -i -H "Connection: Upgrade" -H "Upgrade: websocket"  https://xn--d1aigb4b.xn--p1ai/pb_ws
 ```
 
 ## 8) Troubleshooting
