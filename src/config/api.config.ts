@@ -4,15 +4,13 @@
 
 const isDevelopment = import.meta.env.MODE === 'development';
 
-// PocketBase SDK автоматически добавляет /api к базовому URL
-// Поэтому мы должны использовать пустой путь или корень
-// Nginx будет проксировать /api/* запросы на PocketBase
-export const API_URL = ''; // Пустой URL, так как SDK добавит /api сам
-
-// WebSocket URL
-export const WS_URL = '/pb_ws';
+// В production Nginx проксирует /api/* запросы на PocketBase
+// PocketBase SDK НЕ добавляет /api автоматически, поэтому нужно указать явно
+// Используем window.location.origin для правильной работы на любом домене
+export const API_URL = typeof window !== 'undefined'
+  ? window.location.origin
+  : '';
 
 export default {
-  API_URL,
-  WS_URL
+  API_URL
 };
