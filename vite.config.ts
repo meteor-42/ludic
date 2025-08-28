@@ -10,4 +10,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      // Проксируем API запросы к PocketBase
+      '/api': {
+        target: 'http://127.0.0.1:8090',
+        changeOrigin: true,
+        secure: false,
+        // Не удаляем /api префикс, так как PocketBase ожидает его
+      }
+    }
+  }
 });
