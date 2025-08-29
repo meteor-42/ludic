@@ -58,7 +58,7 @@ export default function Dashboard() {
   // Pagination states
   const [matchesPage, setMatchesPage] = useState<number>(1);
   const [historyPage, setHistoryPage] = useState<number>(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 30;
 
   // Data loading functions
   const loadUserBets = useCallback(async (uid: string) => {
