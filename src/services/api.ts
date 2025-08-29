@@ -200,4 +200,32 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
   static logout() {
     pb.authStore.clear();
   }
+
+  static async changePassword(oldPassword: string, newPassword: string, confirmPassword: string): Promise<void> {
+    if (!pb.authStore.model?.id) {
+      throw new Error("Пользователь не авторизован");
+    }
+
+    if (newPassword !== confirmPassword) {
+      throw new Error("Пароли не совпадают");
+    }
+
+    if (newPassword.length < 8) {
+      throw new Error("Новый пароль должен содержать минимум 8 символов");
+    }
+
+    try {
+      // Обновляем пароль пользователя
+      await pb.collection('users').update(pb.authStore.model.id, {
+        password: newPassword,
+        passwordConfirm: confirmPassword,
+        oldPassword: oldPassword
+      });
+    } catch (error: any) {
+      if (error?.response?.data?.oldPassword) {
+        throw new Error("Неверный текущий пароль");
+      }
+      throw new Error("Ошибка при изменении пароля. Проверьте правильность текущего пароля.");
+    }
+  }
 }
