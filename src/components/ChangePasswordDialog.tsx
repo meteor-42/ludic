@@ -69,6 +69,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
         title: "Пароль успешно изменен",
         description: "Используйте новый пароль при следующем входе",
         duration: STANDARD_TOAST_DURATION.SUCCESS,
+        icon: 'success'
       });
 
       form.reset();
