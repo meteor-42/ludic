@@ -23,7 +23,7 @@ export const Header = ({ stats, statsLoading, onLogout }: HeaderProps) => (
         <StatCard value={`${stats.liveMatches}/${stats.matches}`} label="Live" loading={statsLoading} />
         <StatCard value={`${stats.bets}/${stats.totalBets}`} label="Рассчитано" loading={statsLoading} />
         <StatCard value={stats.correctBets} label="Угадано" loading={statsLoading} />
-        <StatCard value={`${stats.successRate}%`} label="Успех" loading={statsLoading} />
+        <StatCard value={`${stats.successRate}%`} label="Точность" loading={statsLoading} />
       </div>
 
       <div className="flex items-center gap-3">
