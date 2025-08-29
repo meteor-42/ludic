@@ -16,6 +16,7 @@ import { AllBetsTab } from "@/components/dashboard/AllBetsTab";
 
 // Services
 import { ApiService } from "@/services/api";
+const MATCHES_POLL_MS = 60000;
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -159,6 +160,14 @@ export default function Dashboard() {
     loadMatches();
   }, [navigate, toast, loadStats, loadMatches, loadUserBets]);
 
+  // Автообновление списка матчей по таймеру
+  useEffect(() => {
+    const id = setInterval(() => {
+      loadMatches();
+    }, MATCHES_POLL_MS);
+    return () => clearInterval(id);
+  }, [loadMatches]);
+
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
 
@@ -183,16 +192,8 @@ export default function Dashboard() {
   const handlePick = async (match: Match, pick: "H" | "D" | "A") => {
     if (!user?.id) return;
 
-    // ✅ Валидация статуса матча на клиенте
-    if (match.status !== 'upcoming') {
-      toast({
-        variant: 'destructive',
-        title: "Ставка недоступна",
-        description: `Матч имеет статус "${match.status === 'live' ? 'LIVE' : match.status === 'completed' ? 'ЗАВЕРШЕНО' : match.status === 'cancelled' ? 'ОТМЕНЕН' : match.status}". Ставки принимаются только на матчи со статусом "ОЖИДАЕТСЯ".`,
-        duration: 4000
-      });
-      return;
-    }
+    // Клиент не показывает не-upcoming матчи; дополнительная проверка просто отменяет действие
+    if (match.status !== 'upcoming') return;
 
     try {
       setSaving((s) => ({ ...s, [match.id]: true }));
