@@ -20,6 +20,7 @@ export type Bet = {
   display_name?: string;
   pick: "H" | "D" | "A";
   points?: number;
+  created?: string;  // Время создания ставки
 };
 
 export type PBUser = {
