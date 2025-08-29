@@ -79,14 +79,23 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
     ]);
 
     const liveMatches = matchesList.items.filter(match => match.status === 'live').length;
-    const correctBets = betsList.items.filter(bet => (bet.points || 0) > 0).length;
-    const successRate = betsList.totalItems > 0 ? Math.round((correctBets / betsList.totalItems) * 100) : 0;
+
+    // Подсчитываем только угаданные ставки (3 очка)
+    const correctBets = betsList.items.filter(bet => (bet.points || 0) === 3).length;
+
+    // Подсчитываем только обработанные ставки (1 или 3 очка)
+    const processedBets = betsList.items.filter(bet => {
+      const pts = bet.points || 0;
+      return pts === 1 || pts === 3;
+    }).length;
+
+    const successRate = processedBets > 0 ? Math.round((correctBets / processedBets) * 100) : 0;
 
     return {
       users: usersList.totalItems,
       matches: matchesList.totalItems,
       liveMatches,
-      bets: betsList.totalItems,
+      bets: processedBets, // Показываем количество обработанных ставок
       correctBets,
       successRate
     };
@@ -101,9 +110,17 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
     for (const item of betsList.items) {
       const uid = item.user_id as string;
       const pts = Number(item.points || 0);
-      aggPoints.set(uid, (aggPoints.get(uid) || 0) + pts);
-      aggTotal.set(uid, (aggTotal.get(uid) || 0) + 1);
-      if (pts > 0) aggGuessed.set(uid, (aggGuessed.get(uid) || 0) + 1);
+
+      // Суммируем только очки за угаданные исходы (3 очка)
+      if (pts === 3) {
+        aggPoints.set(uid, (aggPoints.get(uid) || 0) + pts);
+        aggGuessed.set(uid, (aggGuessed.get(uid) || 0) + 1);
+      }
+
+      // Считаем в общую статистику только рассчитанные ставки (1 или 3 очка)
+      if (pts === 1 || pts === 3) {
+        aggTotal.set(uid, (aggTotal.get(uid) || 0) + 1);
+      }
     }
 
     const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
