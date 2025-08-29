@@ -1,0 +1,112 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install
+
+    - name: Build project
+      run: bun run build
+
+    - name: Create deployment archive
+      run: |
+        cd dist
+        tar -czf ../ludic-build.tar.gz .
+        cd ..
+
+    - name: Upload build to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.PORT || 22 }}
+        source: "ludic-build.tar.gz"
+        target: "/tmp/"
+
+    - name: Deploy on server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.PORT || 22 }}
+        script: |
+          # Создаем backup текущей версии
+          sudo mkdir -p /var/www/ludic/backups
+          if [ -d "/var/www/ludic/site" ]; then
+            sudo cp -r /var/www/ludic/site /var/www/ludic/backups/backup-$(date +%Y%m%d-%H%M%S)
+            # Оставляем только последние 5 бэкапов
+            sudo find /var/www/ludic/backups/ -type d -name "backup-*" | sort -r | tail -n +6 | sudo xargs -r rm -rf
+          fi
+
+          # Создаем временную директорию для распаковки
+          sudo mkdir -p /tmp/ludic-deploy
+          sudo chown $USER:$USER /tmp/ludic-deploy
+
+          # Распаковываем новые файлы
+          cd /tmp/ludic-deploy
+          tar -xzf /tmp/ludic-build.tar.gz
+
+          # Развертывание новых файлов
+          sudo mkdir -p /var/www/ludic/site
+          sudo rsync -av --delete ./ /var/www/ludic/site/
+
+          # Определяем веб-пользователя (CentOS vs Ubuntu)
+          if [ -f /etc/redhat-release ]; then
+            WEB_USER="nginx"
+          else
+            WEB_USER="www-data"
+          fi
+
+          # Устанавливаем правильные права доступа
+          sudo chown -R $WEB_USER:$WEB_USER /var/www/ludic/site
+          sudo find /var/www/ludic/site -type f -exec chmod 644 {} \;
+          sudo find /var/www/ludic/site -type d -exec chmod 755 {} \;
+
+          # Проверяем конфигурацию nginx и перезагружаем
+          sudo nginx -t && sudo systemctl reload nginx
+
+          # Очистка временных файлов
+          rm -rf /tmp/ludic-deploy /tmp/ludic-build.tar.gz
+
+          # Логирование
+          echo "Deployment completed at $(date)" | sudo tee -a /var/log/ludic-deploy.log
+
+    - name: Verify deployment
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.PORT || 22 }}
+        script: |
+          # Проверяем что файлы на месте
+          if [ -f "/var/www/ludic/site/index.html" ]; then
+            echo "✅ Deployment successful - index.html found"
+            # Проверяем доступность сайта
+            if curl -s -o /dev/null -w "%{http_code}" https://xn--d1aigb4b.xn--p1ai/ | grep -q "200"; then
+              echo "✅ Site is accessible"
+            else
+              echo "⚠️ Site might not be accessible"
+            fi
+          else
+            echo "❌ Deployment failed - index.html not found"
+            exit 1
+          fi
