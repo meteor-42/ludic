@@ -13,6 +13,7 @@ import { Header } from "@/components/dashboard/Header";
 import { MatchesTab } from "@/components/dashboard/MatchesTab";
 import { LeadersTab } from "@/components/dashboard/LeadersTab";
 import { AllBetsTab } from "@/components/dashboard/AllBetsTab";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 // Services
 import { ApiService } from "@/services/api";
@@ -25,6 +26,7 @@ export default function Dashboard() {
 
   // Auth state
   const [user, setUser] = useState<AuthUser>(null);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<string>(() => localStorage.getItem('activeTab') || "matches");
