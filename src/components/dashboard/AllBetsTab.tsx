@@ -42,11 +42,10 @@ export const AllBetsTab = ({
     ) : false;
     return teamMatch;
   }).sort((a, b) => {
-    const ma = matches.find(mm => mm.id === a.match_id);
-    const mb = matches.find(mm => mm.id === b.match_id);
-    const da = ma ? new Date(ma.starts_at).getTime() : 0;
-    const db = mb ? new Date(mb.starts_at).getTime() : 0;
-    return db - da; // сортировка по убыванию (сначала новые)
+    // Сортировка по времени создания ставки (сначала самые новые)
+    const da = a.created ? new Date(a.created).getTime() : 0;
+    const db = b.created ? new Date(b.created).getTime() : 0;
+    return db - da; // сортировка по убыванию (сначала новые ставки)
   });
 
   const totalPages = Math.ceil(filteredBets.length / itemsPerPage);
