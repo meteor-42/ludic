@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface CountdownProps {
   targetDate: string; // ISO string даты начала матча
   className?: string;
+  onElapsed?: () => void;
 }
 
 interface TimeLeft {
@@ -14,8 +15,9 @@ interface TimeLeft {
   total: number;
 }
 
-export const Countdown = ({ targetDate, className }: CountdownProps) => {
+export const Countdown = ({ targetDate, className, onElapsed }: CountdownProps) => {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
+  const [fired, setFired] = useState(false);
 
   // Задайте нужное смещение здесь (в часах)
   const shift = 3; // +3 часа для Москвы
@@ -25,10 +27,10 @@ export const Countdown = ({ targetDate, className }: CountdownProps) => {
       try {
         // Получаем текущее время
         const now = new Date();
-        
+
         // Применяем смещение часового пояса к текущему времени
         const currentTimeWithShift = new Date(now.getTime() + (shift * 60 * 60 * 1000));
-        
+
         // Целевая дата (уже в нужном часовом поясе из базы)
         const target = new Date(targetDate);
         const difference = target.getTime() - currentTimeWithShift.getTime();
@@ -53,12 +55,17 @@ export const Countdown = ({ targetDate, className }: CountdownProps) => {
 
     // Обновляем каждую секунду
     const interval = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
+      const tl = calculateTimeLeft();
+      setTimeLeft(tl);
+      if (!fired && tl.total <= 0) {
+        setFired(true);
+        onElapsed?.();
+      }
     }, 1000);
 
     // Очищаем интервал при размонтировании
     return () => clearInterval(interval);
-  }, [targetDate, shift]); // Добавил shift в зависимости
+  }, [targetDate, shift, fired, onElapsed]); // Добавил зависимости
 
   const formatTime = (): string => {
     if (timeLeft.total <= 0) {
@@ -114,6 +121,7 @@ export const Countdown = ({ targetDate, className }: CountdownProps) => {
     return "text-green-600";
   };
 
+  if (timeLeft.total <= 0) return null;
   return (
     <span className={cn(
       "text-xs font-medium transition-colors duration-300",
