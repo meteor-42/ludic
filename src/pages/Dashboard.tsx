@@ -183,6 +183,17 @@ export default function Dashboard() {
   const handlePick = async (match: Match, pick: "H" | "D" | "A") => {
     if (!user?.id) return;
 
+    // ✅ Валидация статуса матча на клиенте
+    if (match.status !== 'upcoming') {
+      toast({
+        variant: 'destructive',
+        title: "Ставка недоступна",
+        description: `Матч имеет статус "${match.status === 'live' ? 'LIVE' : match.status === 'completed' ? 'ЗАВЕРШЕНО' : match.status === 'cancelled' ? 'ОТМЕНЕН' : match.status}". Ставки принимаются только на матчи со статусом "ОЖИДАЕТСЯ".`,
+        duration: 4000
+      });
+      return;
+    }
+
     try {
       setSaving((s) => ({ ...s, [match.id]: true }));
 
@@ -206,15 +217,20 @@ export default function Dashboard() {
         duration: 2500
       });
     } catch (e: unknown) {
-      const err = e as { name?: string };
+      const err = e as { name?: string; message?: string };
       if (err?.name === 'AbortError') {
         console.warn('bet save aborted');
       } else {
         console.error(e);
+        // ✅ Показываем конкретную ошибку от сервера, если доступна
+        const errorMessage = err?.message?.includes('статус') || err?.message?.includes('запрещены')
+          ? err.message
+          : "Повторите попытку через минуту";
+
         toast({
           variant: 'destructive',
           title: "Не удалось сохранить ставку",
-          description: "Повторите попытку через минуту",
+          description: errorMessage,
           duration: 3500
         });
       }
