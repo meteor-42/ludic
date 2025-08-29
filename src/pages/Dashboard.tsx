@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast, STANDARD_TOAST_DURATION } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // Types
@@ -96,7 +96,7 @@ export default function Dashboard() {
         console.warn('load leaders aborted');
       } else {
         console.error(e);
-        toast({ variant: 'destructive', title: "Ошибка загрузки лидеров", description: "Попробуйте обновить страницу позже", duration: 3500 });
+        toast({ variant: 'destructive', title: "Ошибка загрузки лидеров", description: "Попробуйте обновить страницу позже", duration: STANDARD_TOAST_DURATION.ERROR });
       }
     } finally {
       setLeadersLoading(false);
@@ -114,7 +114,7 @@ export default function Dashboard() {
         console.warn('load matches aborted');
       } else {
         console.error(e);
-        toast({ variant: 'destructive', title: "Ошибка загрузки матчей", description: "Попробуйте обновить страницу позже", duration: 3500 });
+        toast({ variant: 'destructive', title: "Ошибка загрузки матчей", description: "Попробуйте обновить страницу позже", duration: STANDARD_TOAST_DURATION.ERROR });
       }
     } finally {
       setLoading(false);
@@ -215,7 +215,7 @@ export default function Dashboard() {
       toast({
         title: `${match.home_team} — ${match.away_team}${suffix}`,
         description: 'Ваш выбор учтен. Удачи.',
-        duration: 2500
+        duration: STANDARD_TOAST_DURATION.SUCCESS
       });
     } catch (e: unknown) {
       const err = e as { name?: string; message?: string };
@@ -232,7 +232,7 @@ export default function Dashboard() {
           variant: 'destructive',
           title: "Не удалось сохранить ставку",
           description: errorMessage,
-          duration: 3500
+          duration: STANDARD_TOAST_DURATION.ERROR
         });
       }
     } finally {
