@@ -20,6 +20,7 @@ type ToasterToast = ToastProps & {
   description?: React.ReactNode
   action?: ToastActionElement
   duration?: number
+  icon?: 'success' | 'loading' | 'info'
 }
 
 const actionTypes = {
