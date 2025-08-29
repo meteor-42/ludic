@@ -42,18 +42,18 @@ export const LeaderRow = ({ row, index }: LeaderRowProps) => {
             <span className="text-sm font-medium truncate flex-1">
               {row.name || `Игрок ${row.user_id.slice(-6)}`}
             </span>
-            
+
             {/* Статистика - прижата к правому краю с рамкой */}
             <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1 bg-white">
-              {/* Всего ставок - черный фон */}
+              {/* Рассчитанные ставки (1 или 3 очка) - черный фон */}
               <span className="px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center bg-black text-white">
                 {row.totalBets}
               </span>
-              {/* Угаданные ставки - салатовый фон */}
+              {/* Угаданные ставки (только 3 очка) - зеленый фон */}
               <span className="px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center bg-green-50 text-green-900">
                 {row.guessedBets}
               </span>
-              {/* Процент угаданных - светло-серый фон */}
+              {/* Процент угаданных от рассчитанных - серый фон */}
               <span className="px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center bg-muted text-gray-900">
                 {row.successRate}%
               </span>
