@@ -56,4 +56,5 @@ export type LeaderData = {
   guessedBets: number;
   successRate: number;
   created?: string;
+  allBets?: number;
 };
