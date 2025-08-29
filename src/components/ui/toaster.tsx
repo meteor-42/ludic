@@ -19,7 +19,7 @@ export function Toaster() {
           <Toast key={id} {...props} variant={variant}>
             <div className="flex items-start gap-3">
               <div className="mt-0.5">
-                {variant === 'destructive' ? (
+                {icon === 'error' ? (
                   <TriangleAlert className="h-4 w-4 text-red-600" />
                 ) : icon === 'success' ? (
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
