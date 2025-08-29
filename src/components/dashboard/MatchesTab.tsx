@@ -82,7 +82,7 @@ export const MatchesTab = ({
         <Label className="text-lg font-semibold">Выбор</Label>
         <div className="flex gap-2">
           <Select value={leagueFilter} onValueChange={onLeagueFilterChange}>
-            <SelectTrigger className="w-[140px] h-9">
+            <SelectTrigger className="h-9 inline-flex w-auto min-w-0">
               <SelectValue placeholder="Лига" />
             </SelectTrigger>
             <SelectContent>
@@ -95,7 +95,7 @@ export const MatchesTab = ({
             </SelectContent>
           </Select>
           <Select value={tourFilter} onValueChange={onTourFilterChange}>
-            <SelectTrigger className="w-[100px] h-9">
+            <SelectTrigger className="h-9 inline-flex w-auto min-w-0">
               <SelectValue placeholder="Тур" />
             </SelectTrigger>
             <SelectContent>
