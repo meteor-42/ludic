@@ -250,8 +250,14 @@ export default function Dashboard() {
           stats={stats}
           statsLoading={statsLoading}
           onLogout={handleLogout}
+          onChangePassword={() => setChangePasswordOpen(true)}
         />
         <Separator className="mb-4" />
+
+        <ChangePasswordDialog
+          open={changePasswordOpen}
+          onOpenChange={setChangePasswordOpen}
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
