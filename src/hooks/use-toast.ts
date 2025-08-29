@@ -8,6 +8,12 @@ import type {
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 5000 // 5 секунд по умолчанию
 
+// Стандартные длительности для разных типов тостов
+export const STANDARD_TOAST_DURATION = {
+  SUCCESS: 2500,  // Успешные операции (ставки)
+  ERROR: 3500,    // Ошибки
+} as const
+
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
