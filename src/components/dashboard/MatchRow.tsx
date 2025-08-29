@@ -15,7 +15,8 @@ interface MatchRowProps {
 // Экспорт компонента как named export
 export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: MatchRowProps) => {
   const selected = selectedBet?.pick;
-  const disabled = isSaving;
+  // ✅ Блокируем ставки если матч не в статусе "upcoming" или идет сохранение
+  const disabled = isSaving || m.status !== 'upcoming';
 
   return (
     <Card className="transition-colors hover:bg-muted/50">
@@ -46,15 +47,15 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
             <span className="text-sm font-medium truncate flex-1">
               {m.home_team} ～ {m.away_team}
             </span>
-            
+
             {/* Выбор ставки - прижат к правому краю с рамкой */}
             <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1 bg-white">
               <span
                 onClick={() => !disabled && onPick('H')}
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center cursor-pointer",
-                  selected === 'H' 
-                    ? "bg-primary text-primary-foreground" 
+                  selected === 'H'
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground opacity-70",
                   disabled && "opacity-50 cursor-not-allowed"
                 )}
@@ -65,8 +66,8 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
                 onClick={() => !disabled && onPick('D')}
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center cursor-pointer",
-                  selected === 'D' 
-                    ? "bg-primary text-primary-foreground" 
+                  selected === 'D'
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground opacity-70",
                   disabled && "opacity-50 cursor-not-allowed"
                 )}
@@ -77,8 +78,8 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
                 onClick={() => !disabled && onPick('A')}
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center cursor-pointer",
-                  selected === 'A' 
-                    ? "bg-primary text-primary-foreground" 
+                  selected === 'A'
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground opacity-70",
                   disabled && "opacity-50 cursor-not-allowed"
                 )}
@@ -87,6 +88,15 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
               </span>
             </div>
           </div>
+
+          {/* ✅ Индикация недоступности ставок */}
+          {m.status !== 'upcoming' && (
+            <div className="flex justify-center">
+              <span className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded">
+                Ставки недоступны ({statusLabel(m.status)})
+              </span>
+            </div>
+          )}
 
           {/* Строка 3: Номер матча и обратный отсчет */}
           <div className="flex items-center justify-between h-5">
