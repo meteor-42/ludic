@@ -52,14 +52,13 @@ export default function Dashboard() {
 
   // Filter states
   const [leagueFilter, setLeagueFilter] = useState<string>("all");
-  const [tourFilter, setTourFilter] = useState<string>("all");
   const [historyFilter, setHistoryFilter] = useState<string>("");
   const [showAllBets, setShowAllBets] = useState<boolean>(false);
 
   // Pagination states
   const [matchesPage, setMatchesPage] = useState<number>(1);
   const [historyPage, setHistoryPage] = useState<number>(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
 
   // Data loading functions
   const loadUserBets = useCallback(async (uid: string) => {
@@ -160,13 +159,7 @@ export default function Dashboard() {
     loadMatches();
   }, [navigate, toast, loadStats, loadMatches, loadUserBets]);
 
-  // Автообновление списка матчей по таймеру
-  useEffect(() => {
-    const id = setInterval(() => {
-      loadMatches();
-    }, MATCHES_POLL_MS);
-    return () => clearInterval(id);
-  }, [loadMatches]);
+  // Автообновление списка матчей по таймеру удалено по требованию
 
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
@@ -181,6 +174,11 @@ export default function Dashboard() {
       loadAllBets();
     }
   }, [activeTab, showAllBets, loadAllBets]);
+
+  // При смене лиги принудительно перезагружаем матчи для консистентности
+  useEffect(() => {
+    loadMatches();
+  }, [leagueFilter, loadMatches]);
 
   // Event handlers
   const handleLogout = () => {
@@ -267,11 +265,9 @@ export default function Dashboard() {
               saving={saving}
               loading={loading}
               leagueFilter={leagueFilter}
-              tourFilter={tourFilter}
               page={matchesPage}
               itemsPerPage={itemsPerPage}
               onLeagueFilterChange={setLeagueFilter}
-              onTourFilterChange={setTourFilter}
               onPageChange={setMatchesPage}
               onPick={handlePick}
             />
