@@ -108,10 +108,12 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
     const aggPoints = new Map<string, number>();
     const aggTotal = new Map<string, number>();
     const aggGuessed = new Map<string, number>();
+    const aggAll = new Map<string, number>();
 
     for (const item of betsList.items) {
       const uid = item.user_id as string;
       const pts = Number(item.points || 0);
+      aggAll.set(uid, (aggAll.get(uid) || 0) + 1);
 
       // Суммируем только очки за угаданные исходы (3 очка)
       if (pts === 3) {
@@ -128,6 +130,7 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
     const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
     const merged = usersList.items.map((u) => {
       const totalBets = aggTotal.get(u.id) || 0;
+      const allBets = aggAll.get(u.id) || 0;
       const guessedBets = aggGuessed.get(u.id) || 0;
       const successRate = totalBets > 0 ? Math.round((guessedBets / totalBets) * 100) : 0;
 
@@ -136,6 +139,7 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
         points: aggPoints.get(u.id) || 0,
         name: (u.display_name || '').trim() || `ID: ${u.id}`,
         totalBets,
+        allBets,
         guessedBets,
         successRate,
         created: u.created // Добавляем дату регистрации
