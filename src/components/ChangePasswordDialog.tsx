@@ -77,10 +77,10 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
     } catch (error: unknown) {
       const err = error as { message?: string };
       toast({
-        variant: "destructive",
         title: "Ошибка изменения пароля",
         description: err.message || "Произошла ошибка при изменении пароля",
         duration: STANDARD_TOAST_DURATION.ERROR,
+        icon: 'info'
       });
     } finally {
       setLoading(false);
