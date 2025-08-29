@@ -16,7 +16,7 @@ import { AllBetsTab } from "@/components/dashboard/AllBetsTab";
 
 // Services
 import { ApiService } from "@/services/api";
-const MATCHES_POLL_MS = 60000;
+const MATCHES_POLL_MS = 30000;
 
 export default function Dashboard() {
   const navigate = useNavigate();
