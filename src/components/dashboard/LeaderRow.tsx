@@ -45,9 +45,9 @@ export const LeaderRow = ({ row, index }: LeaderRowProps) => {
 
             {/* Статистика - прижата к правому краю с рамкой */}
             <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1 bg-white">
-              {/* Рассчитанные ставки (1 или 3 очка) - черный фон */}
-              <span className="px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center bg-black text-white">
-                {row.totalBets}
+              {/* Рассчитанные ставки (1 или 3 очка) | все ставки - черный фон */}
+              <span className="px-3 py-2 text-sm font-medium rounded min-w-[70px] flex items-center justify-center bg-black text-white">
+                {row.totalBets} / {row.allBets ?? row.totalBets}
               </span>
               {/* Угаданные ставки (только 3 очка) - зеленый фон */}
               <span className="px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center bg-green-50 text-green-900">
