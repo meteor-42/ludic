@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { MatchRow } from './MatchRow';
 import type { Match, Bet } from "@/types/dashboard";
+import { useMemo } from "react";
 
 interface MatchesTabProps {
   matches: Match[];
@@ -35,16 +36,17 @@ export const MatchesTab = ({
   onPick
 }: MatchesTabProps) => {
   // Группировка матчей
+  const upcomingMatches = useMemo(() => matches.filter(m => m.status === 'upcoming'), [matches]);
   const groups: Record<string, Match[]> = {};
-  for (const m of matches) {
+  for (const m of upcomingMatches) {
     const k = `${m.league} • Тур ${m.tour}`;
     if (!groups[k]) groups[k] = [];
     groups[k].push(m);
   }
 
   // Получаем уникальные лиги и туры
-  const uniqueLeagues = Array.from(new Set(matches.map(m => m.league))).sort();
-  const uniqueTours = Array.from(new Set(matches.map(m => m.tour))).sort((a, b) => a - b);
+  const uniqueLeagues = Array.from(new Set(upcomingMatches.map(m => m.league))).sort();
+  const uniqueTours = Array.from(new Set(upcomingMatches.map(m => m.tour))).sort((a, b) => a - b);
 
   // Фильтруем группы
   const filteredGroups = Object.fromEntries(
