@@ -12,11 +12,9 @@ interface MatchesTabProps {
   saving: Record<string, boolean>;
   loading: boolean;
   leagueFilter: string;
-  tourFilter: string;
   page: number;
   itemsPerPage: number;
   onLeagueFilterChange: (value: string) => void;
-  onTourFilterChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onPick: (match: Match, pick: "H" | "D" | "A") => void;
 }
@@ -27,11 +25,9 @@ export const MatchesTab = ({
   saving,
   loading,
   leagueFilter,
-  tourFilter,
   page,
   itemsPerPage,
   onLeagueFilterChange,
-  onTourFilterChange,
   onPageChange,
   onPick
 }: MatchesTabProps) => {
@@ -46,13 +42,11 @@ export const MatchesTab = ({
 
   // Получаем уникальные лиги и туры
   const uniqueLeagues = Array.from(new Set(upcomingMatches.map(m => m.league))).sort();
-  const uniqueTours = Array.from(new Set(upcomingMatches.map(m => m.tour))).sort((a, b) => a - b);
 
   // Фильтруем группы
   const filteredGroups = Object.fromEntries(
     Object.entries(groups).filter(([key]) => {
       if (leagueFilter !== "all" && !key.includes(leagueFilter)) return false;
-      if (tourFilter !== "all" && !key.includes(`Тур ${tourFilter}`)) return false;
       return true;
     })
   );
@@ -90,19 +84,6 @@ export const MatchesTab = ({
               {uniqueLeagues.map(league => (
                 <SelectItem key={league} value={league}>
                   {league}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={tourFilter} onValueChange={onTourFilterChange}>
-            <SelectTrigger className="h-9 inline-flex w-auto min-w-0">
-              <SelectValue placeholder="Тур" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все туры</SelectItem>
-              {uniqueTours.map(tour => (
-                <SelectItem key={tour} value={tour.toString()}>
-                  Тур {tour}
                 </SelectItem>
               ))}
             </SelectContent>
