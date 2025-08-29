@@ -45,7 +45,7 @@ export default function LoginForm() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-sm border rounded-none shadow-none">
         <CardHeader className="pb-6 text-center">
-          <CardTitle className="text-md">В Х О Д!</CardTitle>
+          <CardTitle className="text-md">В Х О Д</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
