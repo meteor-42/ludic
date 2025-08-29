@@ -38,12 +38,12 @@ export type PBUserRecord = {
 export type AuthUser = PBUser | null;
 
 export type Stats = {
-  users: number;
-  matches: number;
-  liveMatches: number;
-  bets: number;
-  correctBets: number;
-  successRate: number;
+  users: number;           // Общее количество пользователей
+  matches: number;         // Общее количество матчей
+  liveMatches: number;     // Количество матчей в статусе LIVE
+  bets: number;           // Количество рассчитанных ставок (1 или 3 очка)
+  correctBets: number;    // Количество угаданных ставок (только 3 очка)
+  successRate: number;    // Процент успеха (угаданные/рассчитанные * 100)
 };
 
 export type LeaderData = {
