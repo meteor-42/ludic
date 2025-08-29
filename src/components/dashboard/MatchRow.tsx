@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Countdown } from "./Countdown";
 import type { Match, Bet } from "@/types/dashboard";
 import { formatMsk, statusLabel, statusClass } from "@/utils/dashboard";
+import { useMemo, useState } from "react";
 
 interface MatchRowProps {
   match: Match;
@@ -15,8 +16,14 @@ interface MatchRowProps {
 // Экспорт компонента как named export
 export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: MatchRowProps) => {
   const selected = selectedBet?.pick;
+  const [hidden, setHidden] = useState(false);
   // ✅ Блокируем ставки если матч не в статусе "upcoming" или идет сохранение
   const disabled = isSaving || m.status !== 'upcoming';
+
+  // Если матч не upcoming, не рендерим строку вовсе (доп. защита)
+  if (m.status !== 'upcoming' || hidden) {
+    return null;
+  }
 
   return (
     <Card className="transition-colors hover:bg-muted/50">
@@ -89,21 +96,14 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
             </div>
           </div>
 
-          {/* ✅ Индикация недоступности ставок */}
-          {m.status !== 'upcoming' && (
-            <div className="flex justify-center">
-              <span className="text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded">
-                Ставки недоступны ({statusLabel(m.status)})
-              </span>
-            </div>
-          )}
+          {/* Индикация для не-upcoming удалена как ненужная */}
 
           {/* Строка 3: Номер матча и обратный отсчет */}
           <div className="flex items-center justify-between h-5">
             <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded h-5 flex items-center justify-center">
               {typeof index === 'number' ? `${index + 1} • М${m.id}` : `М${m.id}`}
             </span>
-            <Countdown targetDate={m.starts_at} />
+            <Countdown targetDate={m.starts_at} onElapsed={() => setHidden(true)} />
           </div>
         </div>
       </CardContent>
