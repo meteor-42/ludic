@@ -42,6 +42,7 @@ export type Stats = {
   users: number;           // Общее количество пользователей
   matches: number;         // Общее количество матчей
   liveMatches: number;     // Количество матчей в статусе LIVE
+  totalBets: number;       // Общее количество ставок
   bets: number;           // Количество рассчитанных ставок (1 или 3 очка)
   correctBets: number;    // Количество угаданных ставок (только 3 очка)
   successRate: number;    // Процент успеха (угаданные/рассчитанные * 100)
