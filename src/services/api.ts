@@ -96,6 +96,7 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
       users: usersList.totalItems,
       matches: matchesList.totalItems,
       liveMatches,
+      totalBets: betsList.totalItems, // Общее количество ставок
       bets: processedBets, // Показываем количество обработанных ставок
       correctBets,
       successRate
