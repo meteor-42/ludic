@@ -128,6 +128,13 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
   }
 
   static async saveBet(userId: string, matchId: string, pick: "H" | "D" | "A"): Promise<Bet> {
+    // ✅ Валидация статуса матча на сервере
+    const match = await pb.collection('matches').getOne<Match>(matchId);
+
+    if (match.status !== 'upcoming') {
+      throw new Error(`Ставки на матч со статусом "${match.status}" запрещены. Ставки принимаются только на матчи со статусом "upcoming".`);
+    }
+
     try {
       // Попробуем найти существующую ставку
       const existing = await pb.collection('bets').getFirstListItem(`user_id = "${userId}" && match_id = "${matchId}"`);
