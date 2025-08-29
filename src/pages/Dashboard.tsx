@@ -40,7 +40,7 @@ export default function Dashboard() {
   });
   const [allBets, setAllBets] = useState<Bet[]>([]);
   const [leaders, setLeaders] = useState<LeaderData[]>([]);
-  const [stats, setStats] = useState<Stats>({ users: 0, matches: 0, liveMatches: 0, bets: 0, correctBets: 0, successRate: 0 });
+  const [stats, setStats] = useState<Stats>({ users: 0, matches: 0, liveMatches: 0, totalBets: 0, bets: 0, correctBets: 0, successRate: 0 });
 
   // Loading states
   const [loading, setLoading] = useState<boolean>(true);
