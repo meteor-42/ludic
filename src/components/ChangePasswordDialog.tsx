@@ -20,12 +20,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, STANDARD_TOAST_DURATION } from "@/hooks/use-toast";
 import { ApiService } from "@/services/api";
 import { Eye, EyeOff } from "lucide-react";
 
 const formSchema = z.object({
-  oldPassword: z.string().min(1, "Введите текущий пароль"),
+  oldPassword: z.string().min(3, "Минимум 3 символа"),
   newPassword: z.string().min(8, "Минимум 8 символов"),
   confirmPassword: z.string().min(8, "Минимум 8 символов"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -68,17 +68,18 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
       toast({
         title: "Пароль успешно изменен",
         description: "Используйте новый пароль при следующем входе",
-        duration: 4000,
+        duration: STANDARD_TOAST_DURATION.SUCCESS,
       });
 
       form.reset();
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string };
       toast({
         variant: "destructive",
         title: "Ошибка изменения пароля",
-        description: error.message || "Произошла ошибка при изменении пароля",
-        duration: 4000,
+        description: err.message || "Произошла ошибка при изменении пароля",
+        duration: STANDARD_TOAST_DURATION.ERROR,
       });
     } finally {
       setLoading(false);
