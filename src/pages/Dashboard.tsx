@@ -215,7 +215,8 @@ export default function Dashboard() {
       toast({
         title: `${match.home_team} — ${match.away_team}${suffix}`,
         description: 'Ваш выбор учтен. Удачи.',
-        duration: STANDARD_TOAST_DURATION.SUCCESS
+        duration: STANDARD_TOAST_DURATION.SUCCESS,
+        icon: 'success'
       });
     } catch (e: unknown) {
       const err = e as { name?: string; message?: string };
