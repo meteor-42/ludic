@@ -100,7 +100,7 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
         <DialogHeader>
           <DialogTitle>Изменение пароля</DialogTitle>
           <DialogDescription>
-            Введите текущий пароль и новый пароль для изменения
+            Введите текущий пароль и новый пароль
           </DialogDescription>
         </DialogHeader>
 
