@@ -51,8 +51,10 @@ export const MatchesTab = ({
     })
   );
 
-  // Пагинация
-  const allMatches = Object.values(filteredGroups).flat();
+  // Пагинация с сортировкой по времени начала матчей (ближайшие наверху)
+  const allMatches = Object.values(filteredGroups)
+    .flat()
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   const totalPages = Math.ceil(allMatches.length / itemsPerPage);
   const paginatedMatches = allMatches.slice(
     (page - 1) * itemsPerPage,
