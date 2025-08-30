@@ -35,12 +35,19 @@ export const AllBetsTab = ({
     if (!filter) return true;
     const q = filter.toLowerCase();
     const m = matches.find(mm => mm.id === b.match_id);
+
+    // Поиск по командам и лиге
     const teamMatch = m ? (
       (m.home_team || '').toLowerCase().includes(q) ||
       (m.away_team || '').toLowerCase().includes(q) ||
       (m.league || '').toLowerCase().includes(q)
     ) : false;
-    return teamMatch;
+
+    // Поиск по имени игрока
+    const playerMatch = (b.display_name || '').toLowerCase().includes(q) ||
+                       (b.user_id || '').toLowerCase().includes(q);
+
+    return teamMatch || playerMatch;
   }).sort((a, b) => {
     // Сортировка по времени создания ставки (сначала самые новые)
     const da = a.created ? new Date(a.created).getTime() : 0;
@@ -61,7 +68,7 @@ export const AllBetsTab = ({
           type="text"
           value={filter}
           onChange={(e) => onFilterChange(e.target.value)}
-          placeholder="Поиск по командам"
+          placeholder="Поиск по командам или игроку"
           className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary h-9"
         />
         <div className="flex items-center gap-2">
