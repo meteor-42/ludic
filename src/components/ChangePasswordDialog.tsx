@@ -215,14 +215,6 @@ export function ChangePasswordDialog({ open, onOpenChange }: ChangePasswordDialo
             />
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleOpenChange(false)}
-                disabled={loading}
-              >
-                Отмена
-              </Button>
               <Button type="submit" disabled={loading}>
                 {loading ? "Сохранение..." : "Сохранить"}
               </Button>
