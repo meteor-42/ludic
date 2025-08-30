@@ -299,8 +299,14 @@ export default function Dashboard() {
               showAllBets={showAllBets}
               page={historyPage}
               itemsPerPage={itemsPerPage}
-              onFilterChange={setHistoryFilter}
-              onShowAllBetsToggle={() => setShowAllBets(!showAllBets)}
+              onFilterChange={(value) => {
+                setHistoryFilter(value);
+                setHistoryPage(1); // Сброс на первую страницу при изменении фильтра
+              }}
+              onShowAllBetsToggle={() => {
+                setShowAllBets(!showAllBets);
+                setHistoryPage(1); // Сброс на первую страницу при переключении режима
+              }}
               onPageChange={setHistoryPage}
             />
           </TabsContent>
