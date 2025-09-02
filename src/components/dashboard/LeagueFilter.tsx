@@ -1,149 +1,164 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Filter, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, Filter } from "lucide-react";
 import type { LeagueFilter } from "@/types/dashboard";
 
-interface LeagueFilterProps {
+interface LeagueFilterDropdownProps {
   availableLeagues: string[];
   filter: LeagueFilter;
   onFilterChange: (filter: LeagueFilter) => void;
 }
 
-export const LeagueFilterComponent = ({
+export const LeagueFilterDropdown = ({
   availableLeagues,
   filter,
   onFilterChange
-}: LeagueFilterProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+}: LeagueFilterDropdownProps) => {
+  const [open, setOpen] = useState(false);
 
-  const handleLeagueToggle = (league: string, checked: boolean) => {
-    const newLeagues = checked
-      ? [...filter.leagues, league]
-      : filter.leagues.filter(l => l !== league);
+  const handleLeagueToggle = (league: string) => {
+    const isCurrentlySelected = !filter.showAll && filter.leagues.includes(league);
 
-    onFilterChange({
-      leagues: newLeagues,
-      showAll: newLeagues.length === 0
-    });
+    if (isCurrentlySelected) {
+      // Убираем лигу из выбранных
+      const newLeagues = filter.leagues.filter(l => l !== league);
+      onFilterChange({
+        leagues: newLeagues,
+        showAll: newLeagues.length === 0
+      });
+    } else {
+      // Добавляем лигу к выбранным
+      const newLeagues = filter.showAll ? [league] : [...filter.leagues, league];
+      onFilterChange({
+        leagues: newLeagues,
+        showAll: false
+      });
+    }
   };
 
-  const handleShowAllToggle = (checked: boolean) => {
-    onFilterChange({
-      leagues: checked ? [] : availableLeagues,
-      showAll: checked
-    });
+  const handleShowAllToggle = () => {
+    if (!filter.showAll) {
+      onFilterChange({
+        leagues: [],
+        showAll: true
+      });
+    }
   };
 
-  const clearFilters = () => {
-    onFilterChange({
-      leagues: [],
-      showAll: true
-    });
+  const handleSelectAll = () => {
+    if (filter.leagues.length === availableLeagues.length) {
+      // Если все выбраны, снимаем выбор со всех
+      onFilterChange({
+        leagues: [],
+        showAll: true
+      });
+    } else {
+      // Выбираем все лиги
+      onFilterChange({
+        leagues: [...availableLeagues],
+        showAll: false
+      });
+    }
   };
 
   const activeFiltersCount = filter.showAll ? 0 : filter.leagues.length;
 
+  // Определяем текст для кнопки
+  const buttonText = () => {
+    if (filter.showAll) {
+      return "Все лиги";
+    } else if (filter.leagues.length === 1) {
+      return filter.leagues[0];
+    } else if (filter.leagues.length > 1) {
+      return `${filter.leagues.length} лиг`;
+    }
+    return "Выберите лиги";
+  };
+
   return (
-    <div className="mb-4">
-      <div className="flex items-center gap-2 mb-3">
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 min-w-[140px] justify-between"
         >
-          <Filter className="h-4 w-4" />
-          Фильтр по лигам
-          {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="ml-1">
-              {activeFiltersCount}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            <span className="text-sm">{buttonText()}</span>
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </div>
+          <ChevronDown className="h-4 w-4 ml-1 shrink-0" />
         </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Фильтр по лигам</DropdownMenuLabel>
+        <DropdownMenuSeparator />
 
-        {activeFiltersCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="flex items-center gap-1"
-          >
-            <X className="h-3 w-3" />
-            Очистить
-          </Button>
+        {/* Опция "Все лиги" */}
+        <DropdownMenuCheckboxItem
+          checked={filter.showAll}
+          onCheckedChange={handleShowAllToggle}
+          className="font-medium"
+        >
+          Все лиги
+        </DropdownMenuCheckboxItem>
+
+        {/* Опция "Выбрать все" */}
+        {!filter.showAll && availableLeagues.length > 1 && (
+          <>
+            <DropdownMenuCheckboxItem
+              checked={filter.leagues.length === availableLeagues.length}
+              onCheckedChange={handleSelectAll}
+              className="text-muted-foreground"
+            >
+              Выбрать все
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+          </>
         )}
-      </div>
 
-      {isExpanded && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Выберите лиги для отображения</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-3">
-              {/* Показать все */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="show-all"
-                  checked={filter.showAll}
-                  onCheckedChange={(checked) => handleShowAllToggle(checked as boolean)}
-                />
-                <label
-                  htmlFor="show-all"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Все лиги
-                </label>
-              </div>
+        {filter.showAll && <DropdownMenuSeparator />}
 
-              {/* Отдельные лиги */}
-              <div className="pl-6 border-l-2 border-muted">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {availableLeagues.map((league) => (
-                    <div key={league} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`league-${league}`}
-                        checked={!filter.showAll && filter.leagues.includes(league)}
-                        disabled={filter.showAll}
-                        onCheckedChange={(checked) =>
-                          handleLeagueToggle(league, checked as boolean)
-                        }
-                      />
-                      <label
-                        htmlFor={`league-${league}`}
-                        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {league}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Активные фильтры */}
-      {activeFiltersCount > 0 && !isExpanded && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {filter.leagues.map((league) => (
-            <Badge key={league} variant="outline" className="text-xs">
+        {/* Список лиг */}
+        <div className="max-h-[300px] overflow-y-auto">
+          {availableLeagues.map((league) => (
+            <DropdownMenuCheckboxItem
+              key={league}
+              checked={!filter.showAll && filter.leagues.includes(league)}
+              onCheckedChange={() => handleLeagueToggle(league)}
+              disabled={filter.showAll}
+              className={filter.showAll ? "opacity-50" : ""}
+            >
               {league}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-3 w-3 p-0 ml-1"
-                onClick={() => handleLeagueToggle(league, false)}
-              >
-                <X className="h-2 w-2" />
-              </Button>
-            </Badge>
+            </DropdownMenuCheckboxItem>
           ))}
         </div>
-      )}
-    </div>
+
+        {/* Счетчик выбранных лиг */}
+        {!filter.showAll && filter.leagues.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5">
+              <p className="text-xs text-muted-foreground">
+                Выбрано: {filter.leagues.length} из {availableLeagues.length}
+              </p>
+            </div>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
