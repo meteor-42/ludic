@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import type { LeaderData } from "@/types/dashboard";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import type { LeaderData, LeagueStats } from "@/types/dashboard";
 
 interface LeaderRowProps {
   row: LeaderData;
@@ -8,6 +10,8 @@ interface LeaderRowProps {
 }
 
 export const LeaderRow = ({ row, index }: LeaderRowProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Форматирование даты регистрации
   const formatCreatedDate = (dateString: string) => {
     try {
@@ -20,6 +24,8 @@ export const LeaderRow = ({ row, index }: LeaderRowProps) => {
       return dateString;
     }
   };
+
+  const hasLeagueStats = row.leagueStats && row.leagueStats.length > 0;
 
   return (
     <Card className="transition-colors hover:bg-muted/50">
@@ -67,11 +73,65 @@ export const LeaderRow = ({ row, index }: LeaderRowProps) => {
               ID : {row.user_id.slice(-6)}
             </span>
 
-            {/* Дата регистрации */}
-            <span className="text-xs text-muted-foreground">
-              Зарегистрирован: {row.created ? formatCreatedDate(row.created) : '—'}
-            </span>
+            <div className="flex items-center gap-2">
+              {/* Дата регистрации */}
+              <span className="text-xs text-muted-foreground">
+                Зарегистрирован: {row.created ? formatCreatedDate(row.created) : '—'}
+              </span>
+
+              {/* Кнопка разворота статистики по лигам */}
+              {hasLeagueStats && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="h-5 w-5 p-0"
+                >
+                  {isExpanded ? (
+                    <ChevronUp className="h-3 w-3" />
+                  ) : (
+                    <ChevronDown className="h-3 w-3" />
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Развернутая статистика по лигам */}
+          {isExpanded && hasLeagueStats && (
+            <div className="border-t pt-3 mt-2">
+              <div className="text-xs font-medium text-muted-foreground mb-2">
+                Статистика по лигам:
+              </div>
+              <div className="space-y-2">
+                {row.leagueStats!.map((league: LeagueStats) => (
+                  <div
+                    key={league.league}
+                    className="flex items-center justify-between p-2 bg-muted/30 rounded-md"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{league.league}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {league.points} очков
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {/* Статистика ставок */}
+                      <span className="px-2 py-1 text-xs bg-black text-white rounded min-w-[50px] flex items-center justify-center">
+                        {league.totalBets}/{league.allBets}
+                      </span>
+                      <span className="px-2 py-1 text-xs bg-green-50 text-green-900 rounded min-w-[35px] flex items-center justify-center">
+                        {league.guessedBets}
+                      </span>
+                      <span className="px-2 py-1 text-xs bg-muted text-gray-900 rounded min-w-[40px] flex items-center justify-center">
+                        {league.successRate}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
