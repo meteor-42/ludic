@@ -26,11 +26,16 @@ export const LeagueFilterComponent = ({
   const [open, setOpen] = useState(false);
 
   const handleLeagueToggle = (league: string) => {
+    console.log('Toggle league:', league);
+    console.log('Current filter:', filter);
+
     const isCurrentlySelected = !filter.showAll && filter.leagues.includes(league);
+    console.log('Is currently selected:', isCurrentlySelected);
 
     if (isCurrentlySelected) {
       // Убираем лигу из выбранных
       const newLeagues = filter.leagues.filter(l => l !== league);
+      console.log('New leagues after removing:', newLeagues);
       onFilterChange({
         leagues: newLeagues,
         showAll: newLeagues.length === 0
@@ -38,6 +43,7 @@ export const LeagueFilterComponent = ({
     } else {
       // Добавляем лигу к выбранным
       const newLeagues = filter.showAll ? [league] : [...filter.leagues, league];
+      console.log('New leagues after adding:', newLeagues);
       onFilterChange({
         leagues: newLeagues,
         showAll: false
@@ -46,6 +52,7 @@ export const LeagueFilterComponent = ({
   };
 
   const handleShowAllToggle = () => {
+    console.log('Toggle Show All');
     if (!filter.showAll) {
       onFilterChange({
         leagues: [],
@@ -55,6 +62,7 @@ export const LeagueFilterComponent = ({
   };
 
   const handleSelectAll = () => {
+    console.log('Toggle Select All');
     if (filter.leagues.length === availableLeagues.length) {
       // Если все выбраны, снимаем выбор со всех
       onFilterChange({
