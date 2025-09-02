@@ -221,8 +221,9 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
         passwordConfirm: confirmPassword,
         oldPassword: oldPassword
       });
-    } catch (error: any) {
-      if (error?.response?.data?.oldPassword) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { oldPassword?: string } } };
+      if (err?.response?.data?.oldPassword) {
         throw new Error("Неверный текущий пароль");
       }
       throw new Error("Ошибка при изменении пароля. Проверьте правильность текущего пароля.");
