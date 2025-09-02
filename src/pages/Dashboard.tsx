@@ -17,6 +17,7 @@ import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 // Services
 import { ApiService } from "@/services/api";
+import { LeagueService } from "@/services/leagueService";
 const MATCHES_POLL_MS = 30000;
 
 export default function Dashboard() {
@@ -88,7 +89,7 @@ export default function Dashboard() {
   const loadLeaders = useCallback(async () => {
     try {
       setLeadersLoading(true);
-      const leaders = await ApiService.loadLeaders();
+      const leaders = await LeagueService.loadLeadersWithLeagueStats();
       setLeaders(leaders);
     } catch (e: unknown) {
       const err = e as { name?: string };
