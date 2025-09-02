@@ -18,7 +18,7 @@ interface LeagueFilterDropdownProps {
   onFilterChange: (filter: LeagueFilter) => void;
 }
 
-export const LeagueFilterDropdown = ({
+export const LeagueFilterComponent = ({
   availableLeagues,
   filter,
   onFilterChange
