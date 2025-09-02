@@ -48,6 +48,15 @@ export type Stats = {
   successRate: number;    // Процент успеха (угаданные/рассчитанные * 100)
 };
 
+export type LeagueStats = {
+  league: string;
+  totalBets: number;
+  guessedBets: number;
+  successRate: number;
+  points: number;
+  allBets: number;
+};
+
 export type LeaderData = {
   user_id: string;
   points: number;
@@ -57,4 +66,10 @@ export type LeaderData = {
   successRate: number;
   created?: string;
   allBets?: number;
+  leagueStats?: LeagueStats[];
+};
+
+export type LeagueFilter = {
+  leagues: string[];
+  showAll: boolean;
 };
