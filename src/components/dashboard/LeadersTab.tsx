@@ -25,10 +25,12 @@ export const LeadersTab = ({ leaders, loading, onRefresh }: LeadersTabProps) => 
       try {
         setLoadingLeagues(true);
         const leagues = await LeagueService.getAvailableLeagues();
+        console.log('Available leagues loaded:', leagues);
         setAvailableLeagues(leagues);
 
         // Загружаем сохраненный фильтр
         const savedFilter = LeagueService.loadLeagueFilter();
+        console.log('Saved filter loaded:', savedFilter);
         setLeagueFilter(savedFilter);
       } catch (error) {
         console.error('Error loading leagues:', error);
@@ -42,8 +44,12 @@ export const LeadersTab = ({ leaders, loading, onRefresh }: LeadersTabProps) => 
 
   // Применяем фильтр при изменении лидеров или фильтра
   useEffect(() => {
+    console.log('Applying filter:', leagueFilter);
+    console.log('Leaders before filter:', leaders);
+
     if (leaders.length > 0) {
       const filtered = LeagueService.filterLeadersByLeagues(leaders, leagueFilter);
+      console.log('Filtered leaders:', filtered);
       setFilteredLeaders(filtered);
     } else {
       setFilteredLeaders([]);
@@ -51,6 +57,7 @@ export const LeadersTab = ({ leaders, loading, onRefresh }: LeadersTabProps) => 
   }, [leaders, leagueFilter]);
 
   const handleFilterChange = (newFilter: LeagueFilter) => {
+    console.log('Filter changed to:', newFilter);
     setLeagueFilter(newFilter);
     LeagueService.saveLeagueFilter(newFilter);
   };
