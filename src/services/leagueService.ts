@@ -132,17 +132,27 @@ export class LeagueService {
   }
 
   static filterLeadersByLeagues(leaders: LeaderData[], filter: LeagueFilter): LeaderData[] {
+    console.log('filterLeadersByLeagues called');
+    console.log('Filter:', filter);
+    console.log('Leaders count before filter:', leaders.length);
+
     if (filter.showAll || filter.leagues.length === 0) {
+      console.log('Returning all leaders (showAll or no leagues selected)');
       return leaders;
     }
 
-    return leaders.map(leader => {
-      if (!leader.leagueStats) return leader;
+    const result = leaders.map(leader => {
+      if (!leader.leagueStats) {
+        console.log(`Leader ${leader.name} has no league stats`);
+        return leader;
+      }
 
       // Фильтруем статистику по выбранным лигам
       const filteredLeagueStats = leader.leagueStats.filter(league =>
         filter.leagues.includes(league.league)
       );
+
+      console.log(`Leader ${leader.name}: ${filteredLeagueStats.length} leagues matched out of ${leader.leagueStats.length}`);
 
       // Пересчитываем общую статистику на основе выбранных лиг
       const totalPoints = filteredLeagueStats.reduce((sum, league) => sum + league.points, 0);
@@ -162,6 +172,9 @@ export class LeagueService {
       };
     }).filter(leader => leader.points > 0 || leader.totalBets > 0) // Показываем только игроков с активностью в выбранных лигах
       .sort((a, b) => b.points - a.points);
+
+    console.log('Leaders count after filter:', result.length);
+    return result;
   }
 
   // Сохранение фильтра в localStorage
