@@ -26,24 +26,18 @@ export const LeagueFilterComponent = ({
   const [open, setOpen] = useState(false);
 
   const handleLeagueToggle = (league: string) => {
-    console.log('Toggle league:', league);
-    console.log('Current filter:', filter);
-
     const isCurrentlySelected = !filter.showAll && filter.leagues.includes(league);
-    console.log('Is currently selected:', isCurrentlySelected);
 
     if (isCurrentlySelected) {
-      // Убираем лигу из выбранных
+      // Remove league from selected
       const newLeagues = filter.leagues.filter(l => l !== league);
-      console.log('New leagues after removing:', newLeagues);
       onFilterChange({
         leagues: newLeagues,
         showAll: newLeagues.length === 0
       });
     } else {
-      // Добавляем лигу к выбранным (автоматически отключаем режим "Все лиги")
+      // Add league to selected (automatically disable "All leagues" mode)
       const newLeagues = filter.showAll ? [league] : [...filter.leagues, league];
-      console.log('New leagues after adding:', newLeagues);
       onFilterChange({
         leagues: newLeagues,
         showAll: false
@@ -52,8 +46,7 @@ export const LeagueFilterComponent = ({
   };
 
   const handleShowAllToggle = () => {
-    console.log('Toggle Show All');
-    // Переключаем режим "Все лиги"
+    // Toggle "All leagues" mode
     onFilterChange({
       leagues: [],
       showAll: !filter.showAll
@@ -61,15 +54,14 @@ export const LeagueFilterComponent = ({
   };
 
   const handleSelectAll = () => {
-    console.log('Toggle Select All');
     if (filter.leagues.length === availableLeagues.length) {
-      // Если все выбраны, переключаем на режим "Все лиги"
+      // If all are selected, switch to "All leagues" mode
       onFilterChange({
         leagues: [],
         showAll: true
       });
     } else {
-      // Выбираем все лиги
+      // Select all leagues
       onFilterChange({
         leagues: [...availableLeagues],
         showAll: false
@@ -79,7 +71,7 @@ export const LeagueFilterComponent = ({
 
   const activeFiltersCount = filter.showAll ? 0 : filter.leagues.length;
 
-  // Определяем текст для кнопки
+  // Determine button text
   const buttonText = () => {
     if (filter.showAll) {
       return "Все лиги";
@@ -114,7 +106,7 @@ export const LeagueFilterComponent = ({
         <DropdownMenuLabel>Фильтр по лигам</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {/* Опция "Все лиги" */}
+        {/* "All leagues" option */}
         <DropdownMenuCheckboxItem
           checked={filter.showAll}
           onCheckedChange={handleShowAllToggle}
@@ -123,7 +115,7 @@ export const LeagueFilterComponent = ({
           Все лиги
         </DropdownMenuCheckboxItem>
 
-        {/* Опция "Выбрать все" - показываем только когда режим "Все лиги" отключен */}
+        {/* "Select all" option - only shown when "All leagues" mode is off */}
         {!filter.showAll && availableLeagues.length > 1 && (
           <>
             <DropdownMenuCheckboxItem
@@ -131,26 +123,26 @@ export const LeagueFilterComponent = ({
               onCheckedChange={handleSelectAll}
               className="text-muted-foreground"
             >
+              Выбрать все
             </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuSeparator />
 
-        {/* Список лиг - теперь всегда активны */}
+        {/* List of leagues */}
         <div className="max-h-[300px] overflow-y-auto">
           {availableLeagues.map((league) => (
             <DropdownMenuCheckboxItem
               key={league}
               checked={!filter.showAll && filter.leagues.includes(league)}
               onCheckedChange={() => handleLeagueToggle(league)}
-              // Убрали disabled состояние
             >
               {league}
             </DropdownMenuCheckboxItem>
           ))}
         </div>
 
-        {/* Счетчик выбранных лиг */}
+        {/* Selected leagues counter */}
         {!filter.showAll && filter.leagues.length > 0 && (
           <>
             <DropdownMenuSeparator />
