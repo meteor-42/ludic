@@ -143,7 +143,7 @@ export const LeagueFilterComponent = ({
           <>
             <div className="px-2 py-1.5">
               <p className="text-xs text-muted-foreground">
-                Выберите отдельную лигу для фильтрации
+                Выберите отдельную лигу
               </p>
             </div>
             <DropdownMenuSeparator />
