@@ -134,20 +134,7 @@ export const LeagueFilterComponent = ({
             </DropdownMenuCheckboxItem>
           </>
         )}
-
         <DropdownMenuSeparator />
-
-        {/* Подсказка для пользователя */}
-        {filter.showAll && (
-          <>
-            <div className="px-2 py-1.5">
-              <p className="text-xs text-muted-foreground">
-                Выберите отдельную лигу
-              </p>
-            </div>
-            <DropdownMenuSeparator />
-          </>
-        )}
 
         {/* Список лиг - теперь всегда активны */}
         <div className="max-h-[300px] overflow-y-auto">
