@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Filter } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { LeagueFilter } from "@/types/dashboard";
 
 interface LeagueFilterDropdownProps {
@@ -62,7 +62,7 @@ export const LeagueFilterComponent = ({
     } else if (filter.leagues.length === 1) {
       return filter.leagues[0];
     } else if (filter.leagues.length > 1) {
-      return `${filter.leagues.length} лиг`;
+      return "Выбрано лиг"; // Изменено: убрали отображение количества
     }
     return "Выберите лиги";
   };
@@ -72,14 +72,14 @@ export const LeagueFilterComponent = ({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="flex items-center gap-2 min-w-[140px] justify-between"
+          className="flex items-center gap-2 h-8 justify-between" // Уменьшили высоту
         >
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
+            {/* Убрали иконку фильтра */}
             <span className="text-sm">{buttonText()}</span>
             {activeFiltersCount > 0 && (
               <Badge variant="secondary" className="h-5 px-1.5 text-xs">
-                {activeFiltersCount}
+                {activeFiltersCount} {/* Оставили только число */}
               </Badge>
             )}
           </div>
