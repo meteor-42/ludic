@@ -29,14 +29,14 @@ export const LeagueFilterComponent = ({
     const isCurrentlySelected = !filter.showAll && filter.leagues.includes(league);
 
     if (isCurrentlySelected) {
-      // Remove league from selected
+      // Убираем лигу из выбранных
       const newLeagues = filter.leagues.filter(l => l !== league);
       onFilterChange({
         leagues: newLeagues,
         showAll: newLeagues.length === 0
       });
     } else {
-      // Add league to selected (automatically disable "All leagues" mode)
+      // Добавляем лигу к выбранным (автоматически отключаем режим "Все лиги")
       const newLeagues = filter.showAll ? [league] : [...filter.leagues, league];
       onFilterChange({
         leagues: newLeagues,
@@ -46,32 +46,16 @@ export const LeagueFilterComponent = ({
   };
 
   const handleShowAllToggle = () => {
-    // Toggle "All leagues" mode
+    // Переключаем режим "Все лиги"
     onFilterChange({
       leagues: [],
       showAll: !filter.showAll
     });
   };
 
-  const handleSelectAll = () => {
-    if (filter.leagues.length === availableLeagues.length) {
-      // If all are selected, switch to "All leagues" mode
-      onFilterChange({
-        leagues: [],
-        showAll: true
-      });
-    } else {
-      // Select all leagues
-      onFilterChange({
-        leagues: [...availableLeagues],
-        showAll: false
-      });
-    }
-  };
-
   const activeFiltersCount = filter.showAll ? 0 : filter.leagues.length;
 
-  // Determine button text
+  // Определяем текст для кнопки
   const buttonText = () => {
     if (filter.showAll) {
       return "Все лиги";
@@ -106,7 +90,7 @@ export const LeagueFilterComponent = ({
         <DropdownMenuLabel>Фильтр по лигам</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {/* "All leagues" option */}
+        {/* Опция "Все лиги" */}
         <DropdownMenuCheckboxItem
           checked={filter.showAll}
           onCheckedChange={handleShowAllToggle}
@@ -115,21 +99,10 @@ export const LeagueFilterComponent = ({
           Все лиги
         </DropdownMenuCheckboxItem>
 
-        {/* "Select all" option - only shown when "All leagues" mode is off */}
-        {!filter.showAll && availableLeagues.length > 1 && (
-          <>
-            <DropdownMenuCheckboxItem
-              checked={filter.leagues.length === availableLeagues.length}
-              onCheckedChange={handleSelectAll}
-              className="text-muted-foreground"
-            >
-              Выбрать все
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
+        {/* Постоянный разделитель после "Все лиги" */}
+        <DropdownMenuSeparator />
 
-        {/* List of leagues */}
+        {/* Список лиг */}
         <div className="max-h-[300px] overflow-y-auto">
           {availableLeagues.map((league) => (
             <DropdownMenuCheckboxItem
@@ -142,7 +115,7 @@ export const LeagueFilterComponent = ({
           ))}
         </div>
 
-        {/* Selected leagues counter */}
+        {/* Счетчик выбранных лиг */}
         {!filter.showAll && filter.leagues.length > 0 && (
           <>
             <DropdownMenuSeparator />
