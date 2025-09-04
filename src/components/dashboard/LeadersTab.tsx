@@ -77,7 +77,7 @@ export const LeadersTab = ({ leaders, loading, onRefresh }: LeadersTabProps) => 
               onFilterChange={handleFilterChange}
             />
           )}
-          <Button
+         {/* <Button
             variant="outline"
             onClick={onRefresh}
             disabled={loading}
@@ -85,7 +85,7 @@ export const LeadersTab = ({ leaders, loading, onRefresh }: LeadersTabProps) => 
             title={loading ? "Обновление..." : "Обновить"}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+          </Button> */}
         </div>
       </div>
 
