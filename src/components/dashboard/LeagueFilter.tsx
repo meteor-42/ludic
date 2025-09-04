@@ -131,7 +131,6 @@ export const LeagueFilterComponent = ({
               onCheckedChange={handleSelectAll}
               className="text-muted-foreground"
             >
-              Выбрать все лиги отдельно
             </DropdownMenuCheckboxItem>
           </>
         )}
