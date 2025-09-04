@@ -41,7 +41,7 @@ export const LeagueFilterComponent = ({
         showAll: newLeagues.length === 0
       });
     } else {
-      // Добавляем лигу к выбранным
+      // Добавляем лигу к выбранным (автоматически отключаем режим "Все лиги")
       const newLeagues = filter.showAll ? [league] : [...filter.leagues, league];
       console.log('New leagues after adding:', newLeagues);
       onFilterChange({
@@ -53,18 +53,17 @@ export const LeagueFilterComponent = ({
 
   const handleShowAllToggle = () => {
     console.log('Toggle Show All');
-    if (!filter.showAll) {
-      onFilterChange({
-        leagues: [],
-        showAll: true
-      });
-    }
+    // Переключаем режим "Все лиги"
+    onFilterChange({
+      leagues: [],
+      showAll: !filter.showAll
+    });
   };
 
   const handleSelectAll = () => {
     console.log('Toggle Select All');
     if (filter.leagues.length === availableLeagues.length) {
-      // Если все выбраны, снимаем выбор со всех
+      // Если все выбраны, переключаем на режим "Все лиги"
       onFilterChange({
         leagues: [],
         showAll: true
@@ -124,7 +123,7 @@ export const LeagueFilterComponent = ({
           Все лиги
         </DropdownMenuCheckboxItem>
 
-        {/* Опция "Выбрать все" */}
+        {/* Опция "Выбрать все" - показываем только когда режим "Все лиги" отключен */}
         {!filter.showAll && availableLeagues.length > 1 && (
           <>
             <DropdownMenuCheckboxItem
@@ -132,23 +131,33 @@ export const LeagueFilterComponent = ({
               onCheckedChange={handleSelectAll}
               className="text-muted-foreground"
             >
-              Выбрать все
+              Выбрать все лиги отдельно
             </DropdownMenuCheckboxItem>
+          </>
+        )}
+
+        <DropdownMenuSeparator />
+
+        {/* Подсказка для пользователя */}
+        {filter.showAll && (
+          <>
+            <div className="px-2 py-1.5">
+              <p className="text-xs text-muted-foreground">
+                Выберите отдельную лигу для фильтрации
+              </p>
+            </div>
             <DropdownMenuSeparator />
           </>
         )}
 
-        {filter.showAll && <DropdownMenuSeparator />}
-
-        {/* Список лиг */}
+        {/* Список лиг - теперь всегда активны */}
         <div className="max-h-[300px] overflow-y-auto">
           {availableLeagues.map((league) => (
             <DropdownMenuCheckboxItem
               key={league}
               checked={!filter.showAll && filter.leagues.includes(league)}
               onCheckedChange={() => handleLeagueToggle(league)}
-              disabled={filter.showAll}
-              className={filter.showAll ? "opacity-50" : ""}
+              // Убрали disabled состояние
             >
               {league}
             </DropdownMenuCheckboxItem>
