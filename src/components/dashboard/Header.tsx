@@ -15,7 +15,7 @@ export const Header = ({ stats, statsLoading, balance = 0, onLogout, onChangePas
   <header className="flex items-center justify-between py-4">
     <div className="flex items-center gap-3">
       <span className="inline-flex items-center px-3 py-1 text-sm font-semibold bg-black text-white rounded-none">
-        Баланс: {typeof balance === 'number' ? `${new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(balance)} ₽` : '—'}
+        Баланс: {typeof balance === 'number' ? balance : '—'}
       </span>
     </div>
 
