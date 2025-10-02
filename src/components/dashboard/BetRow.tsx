@@ -53,7 +53,7 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
           </div>
 
           {/* Строка 2: Команды (слева) и выбор ставки (справа) */}
-          <div className="flex items-start md:items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
             {/* Команды - прижаты к левому краю */}
             <div className="flex flex-col flex-1">
               {/* Мобильная версия: в две строки, без разделителя */}
