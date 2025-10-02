@@ -145,18 +145,16 @@ export default function Dashboard() {
       }
       const u = JSON.parse(userData) as AuthUser;
       setUser(u);
-      // Баланс: приводим к числу, если хранится строкой
-      const ub = Number((u as unknown as { balance?: number | string })?.balance);
-      setBalance(Number.isFinite(ub) ? ub : 0);
+      // Баланс в локальном user может отсутствовать
+      setBalance(((u as unknown as { balance?: number })?.balance) ?? 0);
       if (u?.id) {
         loadUserBets(u.id);
         const name = u.display_name || 'Игрок';
       }
     } else {
-      const rec = ApiService.authStore.model as unknown as AuthUser & { balance?: number | string };
+      const rec = ApiService.authStore.record as unknown as AuthUser & { balance?: number };
       setUser(rec);
-      const rb = Number(rec?.balance);
-      setBalance(Number.isFinite(rb) ? rb : 0);
+      setBalance(rec?.balance ?? 0);
       if (rec?.id) {
         loadUserBets(rec.id);
         const name = rec.display_name || 'Игрок';
