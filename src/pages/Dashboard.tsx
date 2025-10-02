@@ -27,6 +27,7 @@ export default function Dashboard() {
 
   // Auth state
   const [user, setUser] = useState<AuthUser>(null);
+  const [balance, setBalance] = useState<number>(0);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   // Tab state
@@ -144,13 +145,16 @@ export default function Dashboard() {
       }
       const u = JSON.parse(userData) as AuthUser;
       setUser(u);
+      // Баланс в локальном user может отсутствовать
+      setBalance(((u as unknown as { balance?: number })?.balance) ?? 0);
       if (u?.id) {
         loadUserBets(u.id);
         const name = u.display_name || 'Игрок';
       }
     } else {
-      const rec = ApiService.authStore.record as unknown as AuthUser;
+      const rec = ApiService.authStore.record as unknown as AuthUser & { balance?: number };
       setUser(rec);
+      setBalance(rec?.balance ?? 0);
       if (rec?.id) {
         loadUserBets(rec.id);
         const name = rec.display_name || 'Игрок';
@@ -251,6 +255,7 @@ export default function Dashboard() {
         <Header
           stats={stats}
           statsLoading={statsLoading}
+          balance={balance}
           onLogout={handleLogout}
           onChangePassword={() => setChangePasswordOpen(true)}
         />
