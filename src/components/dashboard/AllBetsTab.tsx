@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from "@/components/ui/pagination";
 import { BetRow } from "./BetRow";
 import type { Bet, Match } from "@/types/dashboard";
 
@@ -61,6 +61,21 @@ export const AllBetsTab = ({
     page * itemsPerPage
   );
 
+  // Компактная разметка страниц с троеточиями
+  const getCompactPages = (current: number, total: number) => {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages: (number | "ellipsis")[] = [1];
+    const left = Math.max(2, current - 1);
+    const right = Math.min(total - 1, current + 1);
+    if (left > 2) pages.push("ellipsis");
+    for (let p = left; p <= right; p++) pages.push(p);
+    if (right < total - 1) pages.push("ellipsis");
+    pages.push(total);
+    return pages;
+  };
+
+  const pagesToRender = getCompactPages(page, totalPages);
+
   return (
     <>
       <div className="flex justify-between items-center mb-3 gap-2">
@@ -115,16 +130,22 @@ export const AllBetsTab = ({
                 className={page === 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <PaginationItem key={p}>
-                <PaginationLink
-                  isActive={p === page}
-                  onClick={() => onPageChange(p)}
-                >
-                  {p}
-                </PaginationLink>
+
+            {pagesToRender.map((p, idx) => (
+              <PaginationItem key={`${p}-${idx}`}>
+                {p === "ellipsis" ? (
+                  <PaginationEllipsis />
+                ) : (
+                  <PaginationLink
+                    isActive={p === page}
+                    onClick={() => onPageChange(p as number)}
+                  >
+                    {p as number}
+                  </PaginationLink>
+                )}
               </PaginationItem>
             ))}
+
             <PaginationItem>
               <PaginationNext
                 onClick={() => onPageChange(Math.min(totalPages, page + 1))}
