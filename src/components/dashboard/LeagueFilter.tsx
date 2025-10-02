@@ -87,7 +87,7 @@ export const LeagueFilterComponent = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[8rem] p-1">
-        <DropdownMenuLabel className="px-3 py-2 text-sm font-normal">Фильтр:</DropdownMenuLabel>
+        <DropdownMenuLabel className="px-3 py-2 text-sm font-normal">ФИЛЬТР ПО ЛИГАМ</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         {/* Опция "Все лиги" */}
