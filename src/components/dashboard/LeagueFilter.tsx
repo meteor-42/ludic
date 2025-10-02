@@ -72,7 +72,7 @@ export const LeagueFilterComponent = ({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="inline-flex h-9 w-auto min-w-0 px-3 py-2 text-sm font-normal items-center justify-between"
+          className="inline-flex h-9 w-auto min-w-0 py-2 text-sm font-normal items-center justify-between"
         >
           <div className="flex items-center gap-2">
             {/* Убрали иконку фильтра */}
