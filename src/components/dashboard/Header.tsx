@@ -13,8 +13,8 @@ interface HeaderProps {
 export const Header = ({ stats, statsLoading, onLogout, onChangePassword }: HeaderProps) => (
   <header className="flex items-center justify-between py-4">
     <div className="flex items-center gap-3">
-      <span className="inline-flex items-center px-3 py-1 text-[10px] font-semibold uppercase tracking-wide bg-foreground text-background border border-foreground [clip-path:polygon(6px_0,100%_0,100%_calc(100%-6px),calc(100%-6px)_100%,0_100%,0_6px)]">
-        почувствуй разницу
+      <span className="inline-flex items-center px-4 py-2 text-sm font-bold uppercase tracking-wide bg-black text-white border-none">
+        ЛУДИК
       </span>
     </div>
 
