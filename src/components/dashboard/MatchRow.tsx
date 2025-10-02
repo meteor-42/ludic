@@ -49,11 +49,21 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
           </div>
 
           {/* Строка 2: Команды (слева) и выбор ставки (справа) */}
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-start md:items-center justify-between gap-2">
             {/* Команды - прижаты к левому краю */}
-            <span className="text-sm font-medium truncate flex-1">
-              {m.home_team} ～ {m.away_team}
-            </span>
+            <div className="flex flex-col flex-1">
+              {/* Мобильная версия: в две строки, без разделителя */}
+              <span className="text-sm font-medium leading-tight break-words sm:hidden">
+                {m.home_team}
+              </span>
+              <span className="text-sm font-medium leading-tight break-words sm:hidden">
+                {m.away_team}
+              </span>
+              {/* Десктоп: в одну строку, без иконки между командами */}
+              <span className="text-sm font-medium truncate hidden sm:inline">
+                {m.home_team} {m.away_team}
+              </span>
+            </div>
 
             {/* Выбор ставки - прижат к правому краю с рамкой */}
             <div className="flex items-stretch gap-1 border border-border rounded-md p-1 bg-background">
