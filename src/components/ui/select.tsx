@@ -24,7 +24,8 @@ const SelectTrigger = React.forwardRef<
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50" />
+      {/* Ensure consistent spacing with ml-1 and prevent shrink */}
+      <ChevronDown className="h-4 w-4 ml-1 shrink-0 opacity-50" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
