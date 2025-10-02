@@ -12,34 +12,7 @@ export class ApiService {
       sort: 'starts_at',
     });
 
-    // Map possible alternative field names from the DB to the UI expected ones
-    const mapped = list.items.map((item) => {
-      const anyItem = item as unknown as Record<string, unknown>;
-      const odd_home = typeof anyItem["odd_home"] === 'number'
-        ? (anyItem["odd_home"] as number)
-        : typeof anyItem["home_team_odds"] === 'number'
-          ? (anyItem["home_team_odds"] as number)
-          : undefined;
-      const odd_draw = typeof anyItem["odd_draw"] === 'number'
-        ? (anyItem["odd_draw"] as number)
-        : typeof anyItem["draw_odds"] === 'number'
-          ? (anyItem["draw_odds"] as number)
-          : undefined;
-      const odd_away = typeof anyItem["odd_away"] === 'number'
-        ? (anyItem["odd_away"] as number)
-        : typeof anyItem["away_team_odds"] === 'number'
-          ? (anyItem["away_team_odds"] as number)
-          : undefined;
-
-      return {
-        ...item,
-        odd_home,
-        odd_draw,
-        odd_away,
-      } as Match;
-    });
-
-    return mapped.slice().sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+    return list.items.slice().sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   }
 
 static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
