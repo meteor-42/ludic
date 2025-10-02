@@ -56,43 +56,67 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
             </span>
 
             {/* Выбор ставки - прижат к правому краю с рамкой */}
-            <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1 bg-white">
-              <span
+            <div className="flex items-stretch gap-1 border border-border rounded-md p-1 bg-background">
+              <button
+                type="button"
                 onClick={() => !disabled && onPick('H')}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center cursor-pointer",
+                  "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center cursor-pointer leading-tight",
+                  "transition-colors",
                   selected === 'H'
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground opacity-70",
+                    : "bg-muted text-muted-foreground",
                   disabled && "opacity-50 cursor-not-allowed"
                 )}
               >
-                П1
-              </span>
-              <span
+                <span className="text-sm font-medium">П1</span>
+                <span className={cn(
+                  "text-[11px] mt-0.5",
+                  selected === 'H' ? "text-primary-foreground/90" : "text-foreground/60"
+                )}>
+                  {typeof m.odd_home === 'number' ? m.odd_home.toFixed(2) : '—'}
+                </span>
+              </button>
+              <button
+                type="button"
                 onClick={() => !disabled && onPick('D')}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center cursor-pointer",
+                  "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center cursor-pointer leading-tight",
+                  "transition-colors",
                   selected === 'D'
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground opacity-70",
+                    : "bg-muted text-muted-foreground",
                   disabled && "opacity-50 cursor-not-allowed"
                 )}
               >
-                Х
-              </span>
-              <span
+                <span className="text-sm font-medium">Х</span>
+                <span className={cn(
+                  "text-[11px] mt-0.5",
+                  selected === 'D' ? "text-primary-foreground/90" : "text-foreground/60"
+                )}>
+                  {typeof m.odd_draw === 'number' ? m.odd_draw.toFixed(2) : '—'}
+                </span>
+              </button>
+              <button
+                type="button"
                 onClick={() => !disabled && onPick('A')}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center cursor-pointer",
+                  "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center cursor-pointer leading-tight",
+                  "transition-colors",
                   selected === 'A'
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground opacity-70",
+                    : "bg-muted text-muted-foreground",
                   disabled && "opacity-50 cursor-not-allowed"
                 )}
               >
-                П2
-              </span>
+                <span className="text-sm font-medium">П2</span>
+                <span className={cn(
+                  "text-[11px] mt-0.5",
+                  selected === 'A' ? "text-primary-foreground/90" : "text-foreground/60"
+                )}>
+                  {typeof m.odd_away === 'number' ? m.odd_away.toFixed(2) : '—'}
+                </span>
+              </button>
             </div>
           </div>
 
