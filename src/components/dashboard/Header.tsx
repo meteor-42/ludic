@@ -6,16 +6,15 @@ import type { Stats } from "@/types/dashboard";
 interface HeaderProps {
   stats: Stats;
   statsLoading: boolean;
-  balance?: number;
   onLogout: () => void;
   onChangePassword: () => void;
 }
 
-export const Header = ({ stats, statsLoading, balance = 0, onLogout, onChangePassword }: HeaderProps) => (
+export const Header = ({ stats, statsLoading, onLogout, onChangePassword }: HeaderProps) => (
   <header className="flex items-center justify-between py-4">
     <div className="flex items-center gap-3">
-      <span className="inline-flex items-center px-3 py-1 text-sm font-semibold bg-black text-white rounded-none">
-        Баланс: {typeof balance === 'number' ? balance : '—'}
+      <span className="inline-flex items-center px-3 py-1 text-[10px] font-semibold uppercase tracking-wide bg-foreground text-background border border-foreground [clip-path:polygon(6px_0,100%_0,100%_calc(100%-6px),calc(100%-6px)_100%,0_100%,0_6px)]">
+        почувствуй разницу
       </span>
     </div>
 
