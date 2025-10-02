@@ -14,7 +14,7 @@ export const Header = ({ stats, statsLoading, onLogout, onChangePassword }: Head
   <header className="flex items-center justify-between py-4">
     <div className="flex items-center gap-3">
       <span className="inline-flex items-center px-4 py-2 text-sm font-bold uppercase tracking-wide bg-black text-white border-none">
-        ЛУДИК
+        ЛУДИК.РФ
       </span>
     </div>
 
