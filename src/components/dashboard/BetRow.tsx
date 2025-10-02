@@ -21,9 +21,12 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
 
   return (
     <Card key={b.match_id} className={cn(
-      "transition-colors hover:bg-muted/50",
-      isWon && "bg-green-50 border-green-200",
-      isLost && "bg-red-50 border-red-200"
+      // Базовые состояния строки
+      "transition-colors",
+      // Более сочный hover, чем базовое отображение
+      "hover:bg-primary/10",
+      isWon && "bg-green-50 border-green-200 hover:bg-green-100",
+      isLost && "bg-rose-50 border-rose-200 hover:bg-rose-100"
     )}>
       <CardContent className="p-3">
         <div className="flex flex-col gap-2">
@@ -64,31 +67,28 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
             </div>
 
             {/* Выбор ставки - прижат к правому краю с более заметной рамкой */}
-            <div className="flex items-center gap-1 border border-gray-300 rounded-md p-1 bg-white">
-              <span className={cn(
-                "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center",
-                b.pick === 'H'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground opacity-70"
+            <div className="flex items-stretch gap-1 border border-border rounded-md p-1 bg-background">
+              <div className={cn(
+                "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center leading-tight",
+                b.pick === 'H' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               )}>
-                П1
-              </span>
-              <span className={cn(
-                "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center",
-                b.pick === 'D'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground opacity-70"
+                <span className="text-sm font-medium">П1</span>
+                <span className={cn("text-[11px] mt-0.5", b.pick === 'H' ? "text-primary-foreground/90" : "text-foreground/60")}>{typeof m?.odd_home === 'number' ? m.odd_home.toFixed(2) : '—'}</span>
+              </div>
+              <div className={cn(
+                "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center leading-tight",
+                b.pick === 'D' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               )}>
-                Х
-              </span>
-              <span className={cn(
-                "px-3 py-2 text-sm font-medium rounded min-w-[50px] flex items-center justify-center",
-                b.pick === 'A'
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground opacity-70"
+                <span className="text-sm font-medium">Х</span>
+                <span className={cn("text-[11px] mt-0.5", b.pick === 'D' ? "text-primary-foreground/90" : "text-foreground/60")}>{typeof m?.odd_draw === 'number' ? m.odd_draw.toFixed(2) : '—'}</span>
+              </div>
+              <div className={cn(
+                "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center leading-tight",
+                b.pick === 'A' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               )}>
-                П2
-              </span>
+                <span className="text-sm font-medium">П2</span>
+                <span className={cn("text-[11px] mt-0.5", b.pick === 'A' ? "text-primary-foreground/90" : "text-foreground/60")}>{typeof m?.odd_away === 'number' ? m.odd_away.toFixed(2) : '—'}</span>
+              </div>
             </div>
           </div>
 
@@ -110,16 +110,16 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
                     +3
                   </span>
                 ) : b.points === 1 ? (
-                  <span className="text-red-600 text-xs font-bold">
+                  <span className="text-rose-600 text-xs font-bold">
                     Проигрыш
                   </span>
                 ) : (
-                  <span className="text-black text-xs font-medium">
+                  <span className="text-foreground text-xs font-medium">
                     Не рассчитано
                   </span>
                 )
               ) : (
-                <span className="text-black text-xs font-medium">
+                <span className="text-foreground text-xs font-medium">
                   Не рассчитано
                 </span>
               )}
