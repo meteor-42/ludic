@@ -83,7 +83,7 @@ export const LeagueFilterComponent = ({
               </Badge>
             )}
           </div>
-          <ChevronDown className="h-4 w-4 ml-1 shrink-0 opacity-50" />
+          <ChevronDown className="h-4 w-4 ml-3 shrink-0 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[8rem] p-1">
