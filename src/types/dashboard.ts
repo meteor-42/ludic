@@ -27,14 +27,12 @@ export type PBUser = {
   id: string;
   email?: string;
   display_name?: string;
-  balance?: number;
   created?: string;
 };
 
 export type PBUserRecord = {
   id: string;
   display_name?: string;
-  balance?: number;
   created?: string;
 };
 
