@@ -72,7 +72,7 @@ export const LeagueFilterComponent = ({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="inline-flex h-9 w-auto min-w-0 py-2 text-sm font-normal items-center justify-between"
+          className="inline-flex h-9 w-auto min-w-0 px-3 py-2 text-sm font-normal items-center justify-between"
         >
           <div className="flex items-center gap-2">
             {/* Убрали иконку фильтра */}
@@ -87,7 +87,7 @@ export const LeagueFilterComponent = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[8rem] p-1">
-        <DropdownMenuLabel className="px-3 py-2 text-sm font-normal">Фильтр по лигам</DropdownMenuLabel>
+        <DropdownMenuLabel className="px-3 py-2 text-sm font-normal">Фильтр:</DropdownMenuLabel>
         <DropdownMenuSeparator />
 
         {/* Опция "Все лиги" */}
