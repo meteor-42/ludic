@@ -52,10 +52,10 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
 }
 
   static async loadAllBets(): Promise<Bet[]> {
-    const betsList = await pb.collection('bets').getList<Bet>(1, 1000, {});
+    const betsList = await pb.collection('bets').getList<Bet>(1, 10000, {});
 
     // Загружаем список пользователей для получения их имен
-    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
+    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 10000, {});
     const usersMap = new Map<string, string>();
 
     // Создаем карту соответствия ID пользователя и его имени
@@ -76,8 +76,8 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
   static async loadStats(): Promise<Stats> {
     const [usersList, matchesList, betsList] = await Promise.all([
       pb.collection('users').getList(1, 1),
-      pb.collection('matches').getList(1, 1000),
-      pb.collection('bets').getList(1, 1000)
+      pb.collection('matches').getList(1, 10000),
+      pb.collection('bets').getList(1, 10000)
     ]);
 
     const liveMatches = matchesList.items.filter(match => match.status === 'live').length;
@@ -105,7 +105,7 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
   }
 
   static async loadLeaders(): Promise<LeaderData[]> {
-    const betsList = await pb.collection('bets').getList<Bet>(1, 1000, {});
+    const betsList = await pb.collection('bets').getList<Bet>(1, 10000, {});
     const aggPoints = new Map<string, number>();
     const aggTotal = new Map<string, number>();
     const aggGuessed = new Map<string, number>();
