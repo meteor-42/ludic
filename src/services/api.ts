@@ -8,7 +8,7 @@ pb.autoCancellation(false);
 
 export class ApiService {
   static async loadMatches(): Promise<Match[]> {
-    const list = await pb.collection('matches').getList<Match>(1, 200, {
+    const list = await pb.collection('matches').getList<Match>(1, 10000, {
       sort: 'starts_at',
     });
 
@@ -17,7 +17,7 @@ export class ApiService {
 
 static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
   try {
-    const list = await pb.collection('bets').getList<Bet>(1, 200, {
+    const list = await pb.collection('bets').getList<Bet>(1, 10000, {
       filter: `user_id = "${userId}"`,
     });
 
