@@ -1,4 +1,4 @@
-import PocketBase from "pocketbase";
+mport PocketBase from "pocketbase";
 import type { Match, Bet, Stats, LeaderData, PBUser, PBUserRecord } from "@/types/dashboard";
 import { API_URL } from "@/config/api.config";
 
@@ -7,7 +7,28 @@ const pb = new PocketBase(API_URL);
 pb.autoCancellation(false);
 
 export class ApiService {
+  // Универсальная функция для загрузки всех страниц (для случаев >10000 записей)
+  private static async loadAllPages<T>(
+    collection: string, 
+    options: any = {}
+  ): Promise<T[]> {
+    let allItems: T[] = [];
+    let page = 1;
+    const perPage = 500;
+    
+    while (true) {
+      const list = await pb.collection(collection).getList<T>(page, perPage, options);
+      allItems = allItems.concat(list.items);
+      
+      if (list.items.length < perPage) break;
+      page++;
+    }
+    
+    return allItems;
+  }
+
   static async loadMatches(): Promise<Match[]> {
+    // Увеличен лимит с 200 до 10000
     const list = await pb.collection('matches').getList<Match>(1, 10000, {
       sort: 'starts_at',
     });
@@ -17,6 +38,7 @@ export class ApiService {
 
 static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
   try {
+    // Увеличен лимит с 200 до 10000
     const list = await pb.collection('bets').getList<Bet>(1, 10000, {
       filter: `user_id = "${userId}"`,
     });
@@ -52,20 +74,21 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
 }
 
   static async loadAllBets(): Promise<Bet[]> {
-    const betsList = await pb.collection('bets').getList<Bet>(1, 10000, {});
+    // Используем функцию loadAllPages для больших объёмов
+    const betsItems = await this.loadAllPages<Bet>('bets', {});
 
     // Загружаем список пользователей для получения их имен
-    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 10000, {});
+    const usersItems = await this.loadAllPages<PBUserRecord>('users', {});
     const usersMap = new Map<string, string>();
 
     // Создаем карту соответствия ID пользователя и его имени
-    for (const user of usersList.items) {
+    for (const user of usersItems) {
       const name = (user.display_name || '').trim() || `Игрок ${user.id.slice(-6)}`;
       usersMap.set(user.id, name);
     }
 
     // Добавляем имена пользователей к ставкам
-    const betsWithNames = betsList.items.map(bet => ({
+    const betsWithNames = betsItems.map(bet => ({
       ...bet,
       display_name: usersMap.get(bet.user_id as string) || `Игрок ${(bet.user_id as string || '').slice(-6)}`
     }));
@@ -74,19 +97,19 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
   }
 
   static async loadStats(): Promise<Stats> {
-    const [usersList, matchesList, betsList] = await Promise.all([
+    const [usersList, matchesItems, betsItems] = await Promise.all([
       pb.collection('users').getList(1, 1),
-      pb.collection('matches').getList(1, 10000),
-      pb.collection('bets').getList(1, 10000)
+      this.loadAllPages<Match>('matches', {}),
+      this.loadAllPages<Bet>('bets', {})
     ]);
 
-    const liveMatches = matchesList.items.filter(match => match.status === 'live').length;
+    const liveMatches = matchesItems.filter(match => match.status === 'live').length;
 
     // Подсчитываем только угаданные ставки (3 очка)
-    const correctBets = betsList.items.filter(bet => (bet.points || 0) === 3).length;
+    const correctBets = betsItems.filter(bet => (bet.points || 0) === 3).length;
 
     // Подсчитываем только обработанные ставки (1 или 3 очка)
-    const processedBets = betsList.items.filter(bet => {
+    const processedBets = betsItems.filter(bet => {
       const pts = bet.points || 0;
       return pts === 1 || pts === 3;
     }).length;
@@ -95,9 +118,9 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
 
     return {
       users: usersList.totalItems,
-      matches: matchesList.totalItems,
+      matches: matchesItems.length,
       liveMatches,
-      totalBets: betsList.totalItems, // Общее количество ставок
+      totalBets: betsItems.length, // Общее количество ставок
       bets: processedBets, // Показываем количество обработанных ставок
       correctBets,
       successRate
@@ -105,13 +128,13 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
   }
 
   static async loadLeaders(): Promise<LeaderData[]> {
-    const betsList = await pb.collection('bets').getList<Bet>(1, 10000, {});
+    const betsItems = await this.loadAllPages<Bet>('bets', {});
     const aggPoints = new Map<string, number>();
     const aggTotal = new Map<string, number>();
     const aggGuessed = new Map<string, number>();
     const aggAll = new Map<string, number>();
 
-    for (const item of betsList.items) {
+    for (const item of betsItems) {
       const uid = item.user_id as string;
       const pts = Number(item.points || 0);
       aggAll.set(uid, (aggAll.get(uid) || 0) + 1);
@@ -128,8 +151,8 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
       }
     }
 
-    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 10000, {});
-    const merged = usersList.items.map((u) => {
+    const usersItems = await this.loadAllPages<PBUserRecord>('users', {});
+    const merged = usersItems.map((u) => {
       const totalBets = aggTotal.get(u.id) || 0;
       const allBets = aggAll.get(u.id) || 0;
       const guessedBets = aggGuessed.get(u.id) || 0;
