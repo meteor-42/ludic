@@ -8,8 +8,8 @@ pb.autoCancellation(false);
 export class LeagueService {
   static async loadLeadersWithLeagueStats(): Promise<LeaderData[]> {
     const [betsList, matchesList] = await Promise.all([
-      pb.collection('bets').getList<Bet>(1, 1000, {}),
-      pb.collection('matches').getList<Match>(1, 1000, {})
+      pb.collection('bets').getList<Bet>(1, 10000, {}),
+      pb.collection('matches').getList<Match>(1, 10000, {})
     ]);
 
     // Создаем карту матчей для быстрого доступа к лиге
@@ -83,7 +83,7 @@ export class LeagueService {
     }
 
     // Загружаем пользователей
-    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
+    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 10000, {});
 
     const result = usersList.items.map(user => {
       const stats = userStats.get(user.id) || {
@@ -119,7 +119,7 @@ export class LeagueService {
   }
 
   static async getAvailableLeagues(): Promise<string[]> {
-    const matchesList = await pb.collection('matches').getList<Match>(1, 1000, {});
+    const matchesList = await pb.collection('matches').getList<Match>(1, 10000, {});
     const leagues = new Set<string>();
 
     matchesList.items.forEach(match => {
