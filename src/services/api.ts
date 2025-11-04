@@ -128,7 +128,7 @@ static async loadUserBets(userId: string): Promise<Record<string, Bet>> {
       }
     }
 
-    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 1000, {});
+    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 10000, {});
     const merged = usersList.items.map((u) => {
       const totalBets = aggTotal.get(u.id) || 0;
       const allBets = aggAll.get(u.id) || 0;
