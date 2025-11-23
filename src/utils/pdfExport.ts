@@ -100,7 +100,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   // Создание таблицы с правильным шрифтом и цветовым кодированием
   autoTable(doc, {
     startY: 30,
-    head: [["Дата", "Лига", "Результат", "Прогноз", "Результат пари"]],
+    head: [["Дата", "Лига", "Результат", "Прогноз"]],
     body: tableData.map(item => item!.data) as string[][],
     theme: "grid",
     headStyles: {
