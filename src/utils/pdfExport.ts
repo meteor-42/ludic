@@ -39,7 +39,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   doc.setFontSize(20);
   doc.setFont(fontName, "bold");
 
-  const title = "ЛУДИК.РФ - История Ставок";
+  const title = "История Ставок";
   const dateText = `Дата: ${new Date().toLocaleDateString("ru-RU")}`;
 
   doc.text(title, 105, 15, { align: "center" });
@@ -75,14 +75,14 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
         : "";
 
       // Прогноз: П1 (Победа 1), Х (Ничья), П2 (Победа 2)
-      const pickLabel = bet.pick === "H" ? "Победа 1" : bet.pick === "D" ? "Ничья" : "Победа 2";
+      const pickLabel = bet.pick === "H" ? "П1" : bet.pick === "D" ? "X" : "П2";
       
       // Результат матча
       const hasResult = typeof match.home_score === 'number' && typeof match.away_score === 'number';
       const matchResult = hasResult ? `${match.home_score} — ${match.away_score}` : "—";
 
       // Результат пари: 3 очка = Угадано, 1 очко = Не угадано
-      const betResult = bet.points === 3 ? "Угадано" : "Не угадано";
+      // const betResult = bet.points === 3 ? "Угадано" : "Не угадано";
 
       return {
         data: [
@@ -90,7 +90,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
           match.league || "",
           matchResult,
           pickLabel,
-          betResult,
+          // betResult,
         ],
         isWon: bet.points === 3, // true если выиграно, false если проиграно
       };
@@ -100,7 +100,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   // Создание таблицы с правильным шрифтом и цветовым кодированием
   autoTable(doc, {
     startY: 30,
-    head: [["Дата", "Лига", "Результат матча", "Прогноз", "Результат пари"]],
+    head: [["Дата", "Лига", "Результат", "Прогноз", "Результат пари"]],
     body: tableData.map(item => item!.data) as string[][],
     theme: "grid",
     headStyles: {
@@ -117,11 +117,11 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       fontStyle: "normal",
     },
     columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 45 },
+      0: { cellWidth: 30, halign: "center" },
+      1: { cellWidth: 35, halign: "center" },
       2: { cellWidth: 35, halign: "center" },
-      3: { cellWidth: 35 },
-      4: { cellWidth: 35, halign: "center" },
+      3: { cellWidth: 35, halign: "center" },
+      // 4: { cellWidth: 35, halign: "center" },
     },
     didParseCell: function (data) {
       // Устанавливаем фон для строк данных
