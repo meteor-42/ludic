@@ -14,30 +14,36 @@ interface ExtendedJsPDF extends jsPDF {
 export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   const doc = new jsPDF() as ExtendedJsPDF;
 
-  // Добавляем кириллический шрифт Roboto
+  // Добавляем кириллический шрифт Roboto (normal и bold)
+  let fontName = "helvetica"; // fallback
+
   try {
     if (doc.addFileToVFS && doc.addFont) {
+      // Добавляем шрифт в VFS
       doc.addFileToVFS("Roboto-Regular.ttf", robotoFont);
+
+      // Регистрируем шрифт для normal и bold стилей
       doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
-      doc.setFont("Roboto");
-    } else {
-      doc.setFont("helvetica");
+      doc.addFont("Roboto-Regular.ttf", "Roboto", "bold");
+
+      fontName = "Roboto";
+      doc.setFont("Roboto", "normal");
     }
   } catch (e) {
     console.warn("Font loading error:", e);
-    doc.setFont("helvetica");
+    fontName = "helvetica";
   }
 
   // Заголовок
   doc.setFontSize(20);
-  doc.setFont(doc.getFont().fontName, "bold");
+  doc.setFont(fontName, "bold");
 
   const title = "ЛУДИК.РФ - История Ставок";
   const dateText = `Дата: ${new Date().toLocaleDateString("ru-RU")}`;
 
   doc.text(title, 105, 15, { align: "center" });
   doc.setFontSize(10);
-  doc.setFont(doc.getFont().fontName, "normal");
+  doc.setFont(fontName, "normal");
   doc.text(dateText, 105, 22, { align: "center" });
 
   // Сортировка ставок по дате (новые сверху)
@@ -73,7 +79,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
     })
     .filter(Boolean);
 
-  // Создание таблицы
+  // Создание таблицы с правильным шрифтом
   autoTable(doc, {
     startY: 30,
     head: [["Дата", "Матч", "Лига", "Выбор", "Результат"]],
@@ -84,12 +90,13 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       textColor: [255, 255, 255],
       fontSize: 10,
       fontStyle: "bold",
-      font: doc.getFont().fontName,
+      font: fontName,
     },
     styles: {
       fontSize: 9,
       cellPadding: 3,
-      font: doc.getFont().fontName,
+      font: fontName,
+      fontStyle: "normal",
     },
     columnStyles: {
       0: { cellWidth: 20 },
@@ -97,14 +104,6 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       2: { cellWidth: 40 },
       3: { cellWidth: 20, halign: "center" },
       4: { cellWidth: 20, halign: "center" },
-    },
-    didDrawCell: (data) => {
-      // fallback на helvetica если Roboto не поддерживается
-      try {
-        data.cell.styles.font = doc.getFont().fontName;
-      } catch (e) {
-        data.cell.styles.font = "helvetica";
-      }
     },
   });
 
@@ -120,9 +119,9 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
 
   const finalY = doc.lastAutoTable?.finalY || 30;
   doc.setFontSize(11);
-  doc.setFont(doc.getFont().fontName, "bold");
+  doc.setFont(fontName, "bold");
   doc.text("Статистика:", 14, finalY + 15);
-  doc.setFont(doc.getFont().fontName, "normal");
+  doc.setFont(fontName, "normal");
   doc.setFontSize(10);
   doc.text(`Всего ставок: ${totalBets}`, 14, finalY + 22);
   doc.text(`Выиграно: ${wins}`, 14, finalY + 28);
