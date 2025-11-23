@@ -1,24 +1,44 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Bet, Match } from "@/types/dashboard";
+import { robotoFont } from "./roboto-font";
 
 interface ExtendedJsPDF extends jsPDF {
   lastAutoTable?: {
     finalY: number;
   };
+  addFileToVFS?: (fileName: string, base64String: string) => void;
+  addFont?: (fileName: string, fontName: string, fontStyle: string) => void;
 }
 
 export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   const doc = new jsPDF() as ExtendedJsPDF;
 
+  // Добавляем кириллический шрифт Roboto
+  try {
+    if (doc.addFileToVFS && doc.addFont) {
+      doc.addFileToVFS("Roboto-Regular.ttf", robotoFont);
+      doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+      doc.setFont("Roboto");
+    } else {
+      doc.setFont("helvetica");
+    }
+  } catch (e) {
+    console.warn("Font loading error:", e);
+    doc.setFont("helvetica");
+  }
+
   // Заголовок
   doc.setFontSize(20);
-  doc.text("ЛУДИК.РФ - История Ставок", 105, 15, { align: "center" });
+  doc.setFont(doc.getFont().fontName, "bold");
 
+  const title = "ЛУДИК.РФ - История Ставок";
+  const dateText = `Дата: ${new Date().toLocaleDateString("ru-RU")}`;
+
+  doc.text(title, 105, 15, { align: "center" });
   doc.setFontSize(10);
-  doc.text(`Дата: ${new Date().toLocaleDateString("ru-RU")}`, 105, 22, {
-    align: "center",
-  });
+  doc.setFont(doc.getFont().fontName, "normal");
+  doc.text(dateText, 105, 22, { align: "center" });
 
   // Сортировка ставок по дате (новые сверху)
   const sortedBets = [...bets].sort((a, b) => {
@@ -28,29 +48,30 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   });
 
   // Подготовка данных для таблицы
-  const tableData = sortedBets.map((bet) => {
-    const match = matches.find((m) => m.id === bet.match_id);
-    if (!match) return null;
+  const tableData = sortedBets
+    .map((bet) => {
+      const match = matches.find((m) => m.id === bet.match_id);
+      if (!match) return null;
 
-    const pickLabel = bet.pick === "H" ? "П1" : bet.pick === "D" ? "Х" : "П2";
-    const result =
-      bet.result === "win" ? "✓" : bet.result === "loss" ? "✗" : "-";
+      const pickLabel = bet.pick === "H" ? "П1" : bet.pick === "D" ? "Х" : "П2";
+      const result =
+        bet.result === "win" ? "✓" : bet.result === "loss" ? "✗" : "-";
+      const matchDate = match.fixture_date
+        ? new Date(match.fixture_date).toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "2-digit",
+          })
+        : "";
 
-    const matchDate = match.fixture_date
-      ? new Date(match.fixture_date).toLocaleDateString("ru-RU", {
-          day: "2-digit",
-          month: "2-digit",
-        })
-      : "";
-
-    return [
-      matchDate,
-      `${match.home_team} - ${match.away_team}`,
-      match.league || "",
-      pickLabel,
-      result,
-    ];
-  }).filter(Boolean);
+      return [
+        matchDate,
+        `${match.home_team} - ${match.away_team}`,
+        match.league || "",
+        pickLabel,
+        result,
+      ];
+    })
+    .filter(Boolean);
 
   // Создание таблицы
   autoTable(doc, {
@@ -63,10 +84,12 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       textColor: [255, 255, 255],
       fontSize: 10,
       fontStyle: "bold",
+      font: doc.getFont().fontName,
     },
     styles: {
       fontSize: 9,
       cellPadding: 3,
+      font: doc.getFont().fontName,
     },
     columnStyles: {
       0: { cellWidth: 20 },
@@ -74,6 +97,14 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       2: { cellWidth: 40 },
       3: { cellWidth: 20, halign: "center" },
       4: { cellWidth: 20, halign: "center" },
+    },
+    didDrawCell: (data) => {
+      // fallback на helvetica если Roboto не поддерживается
+      try {
+        data.cell.styles.font = doc.getFont().fontName;
+      } catch (e) {
+        data.cell.styles.font = "helvetica";
+      }
     },
   });
 
@@ -88,12 +119,10 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       : "0.0";
 
   const finalY = doc.lastAutoTable?.finalY || 30;
-
   doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
+  doc.setFont(doc.getFont().fontName, "bold");
   doc.text("Статистика:", 14, finalY + 15);
-
-  doc.setFont("helvetica", "normal");
+  doc.setFont(doc.getFont().fontName, "normal");
   doc.setFontSize(10);
   doc.text(`Всего ставок: ${totalBets}`, 14, finalY + 22);
   doc.text(`Выиграно: ${wins}`, 14, finalY + 28);
