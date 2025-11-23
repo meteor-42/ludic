@@ -1,118 +1,168 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { RefreshCw } from "lucide-react";
-import { LeaderRow } from "./LeaderRow";
-import { LeagueFilterComponent } from "./LeagueFilter";
-import type { LeaderData, LeagueFilter } from "@/types/dashboard";
-import { LeagueService } from "@/services/leagueService";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { MatchRow } from './MatchRow';
+import type { Match, Bet } from "@/types/dashboard";
+import { useMemo, useState } from "react";
 
-interface LeadersTabProps {
-  leaders: LeaderData[];
+interface MatchesTabProps {
+  matches: Match[];
+  bets: Record<string, Bet>;
+  saving: Record<string, boolean>;
   loading: boolean;
-  onRefresh: () => void;
+  leagueFilter: string;
+  page: number;
+  itemsPerPage: number;
+  onLeagueFilterChange: (value: string) => void;
+  onPageChange: (page: number) => void;
+  onPick: (match: Match, pick: "H" | "D" | "A") => void;
 }
 
-export const LeadersTab = ({ leaders, loading, onRefresh }: LeadersTabProps) => {
-  const [availableLeagues, setAvailableLeagues] = useState<string[]>([]);
-  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>({ leagues: [], showAll: true });
-  const [filteredLeaders, setFilteredLeaders] = useState<LeaderData[]>([]);
-  const [loadingLeagues, setLoadingLeagues] = useState(true);
+export const MatchesTab = ({
+  matches,
+  bets,
+  saving,
+  loading,
+  leagueFilter,
+  page,
+  itemsPerPage,
+  onLeagueFilterChange,
+  onPageChange,
+  onPick
+}: MatchesTabProps) => {
+  const [open, setOpen] = useState(false);
+  // Группировка матчей
+  const upcomingMatches = useMemo(() => matches.filter(m => m.status === 'upcoming'), [matches]);
+  const groups: Record<string, Match[]> = {};
+  for (const m of upcomingMatches) {
+    const k = `${m.league} • Тур ${m.tour}`;
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(m);
+  }
 
-  // Загружаем доступные лиги при монтировании
-  useEffect(() => {
-    const loadLeagues = async () => {
-      try {
-        setLoadingLeagues(true);
-        const leagues = await LeagueService.getAvailableLeagues();
-        console.log('Available leagues loaded:', leagues);
-        setAvailableLeagues(leagues);
+  // Получаем уникальные лиги и туры
+  const uniqueLeagues = Array.from(new Set(upcomingMatches.map(m => m.league))).sort();
 
-        // Загружаем сохраненный фильтр
-        const savedFilter = LeagueService.loadLeagueFilter();
-        console.log('Saved filter loaded:', savedFilter);
-        setLeagueFilter(savedFilter);
-      } catch (error) {
-        console.error('Error loading leagues:', error);
-      } finally {
-        setLoadingLeagues(false);
-      }
-    };
+  // Фильтруем группы
+  const filteredGroups = Object.fromEntries(
+    Object.entries(groups).filter(([key]) => {
+      if (leagueFilter !== "all" && !key.includes(leagueFilter)) return false;
+      return true;
+    })
+  );
 
-    loadLeagues();
-  }, []);
+  // Пагинация с сортировкой по времени начала матчей (ближайшие наверху)
+  const allMatches = Object.values(filteredGroups)
+    .flat()
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  const totalPages = Math.ceil(allMatches.length / itemsPerPage);
+  const paginatedMatches = allMatches.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
 
-  // Применяем фильтр при изменении лидеров или фильтра
-  useEffect(() => {
-    console.log('Applying filter:', leagueFilter);
-    console.log('Leaders before filter:', leaders);
-
-    if (leaders.length > 0) {
-      const filtered = LeagueService.filterLeadersByLeagues(leaders, leagueFilter);
-      console.log('Filtered leaders:', filtered);
-      setFilteredLeaders(filtered);
-    } else {
-      setFilteredLeaders([]);
-    }
-  }, [leaders, leagueFilter]);
-
-  const handleFilterChange = (newFilter: LeagueFilter) => {
-    console.log('Filter changed to:', newFilter);
-    setLeagueFilter(newFilter);
-    LeagueService.saveLeagueFilter(newFilter);
-  };
-
-  const displayedLeaders = filteredLeaders;
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="text-center text-muted-foreground py-6">
+          Загрузка…
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <>
+    <div className="space-y-3">
+      {/* Фильтр по лиге и туру */}
       <div className="flex items-center justify-between h-9 mb-3">
-        <h3 className="text-lg font-semibold leading-none">Таблица лидеров</h3>
-        <div className="flex items-center gap-2 w-[160px] justify-end">
-          {/* Фильтр лиг (резервируем место, чтобы не было прыжка) */}
-          {!loadingLeagues && availableLeagues.length > 0 ? (
-            <LeagueFilterComponent
-              availableLeagues={availableLeagues}
-              filter={leagueFilter}
-              onFilterChange={handleFilterChange}
-            />
-          ) : (
-            <div className="h-9 w-[160px]" aria-hidden="true" />
-          )}
+        <Label className="text-lg font-semibold leading-none">Выбор</Label>
+        <div className="flex gap-2 w-[160px] justify-end">
+          <DropdownMenu open={open} onOpenChange={setOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="inline-flex h-9 w-[160px] min-w-0 px-3 py-2 text-sm font-normal items-center justify-between"
+              >
+                <span className="truncate">
+                  {leagueFilter === "all" ? "Все лиги" : leagueFilter}
+                </span>
+                <ChevronDown className="h-4 w-4 ml-3 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[12rem] p-1">
+              <DropdownMenuRadioGroup value={leagueFilter} onValueChange={onLeagueFilterChange}>
+                <DropdownMenuRadioItem value="all">Все лиги</DropdownMenuRadioItem>
+                <div className="max-h-[300px] overflow-y-auto">
+                  {uniqueLeagues.map(league => (
+                    <DropdownMenuRadioItem key={league} value={league}>
+                      {league}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </div>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {loading ? (
-        <Card>
-          <CardContent className="text-center text-muted-foreground py-8">
-            Загрузка лидеров…
-          </CardContent>
-        </Card>
-      ) : displayedLeaders.length === 0 ? (
+      {Object.keys(filteredGroups).length === 0 && (
         <Card>
           <CardContent className="text-center text-muted-foreground py-6">
-            {leagueFilter.showAll ?
-              "Пока нет данных по лидерам" :
-              "Нет лидеров в выбранных лигах"
-            }
+            Нет матчей в выбранной лиге.
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-3">
-          {displayedLeaders.map((row, idx) => (
-            <LeaderRow key={row.user_id} row={row} index={idx} />
-          ))}
-        </div>
       )}
 
-      {/* Информация о фильтрации */}
-      {!leagueFilter.showAll && displayedLeaders.length > 0 && (
-        <Card className="mt-4">
-          <CardContent className="text-center text-sm text-muted-foreground py-3">
-            Показано {displayedLeaders.length} игроков из {leagueFilter.leagues.length} лиг: {leagueFilter.leagues.join(", ")}
-          </CardContent>
-        </Card>
+      <div className="space-y-3">
+        {paginatedMatches.map((m, idx) => (
+          <MatchRow
+            key={m.id}
+            match={m}
+            index={idx}
+            selectedBet={bets[m.id]}
+            isSaving={!!saving[m.id]}
+            onPick={(pick) => onPick(m, pick)}
+          />
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => onPageChange(Math.max(1, page - 1))}
+                className={page === 1 ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <PaginationItem key={p}>
+                <PaginationLink
+                  isActive={p === page}
+                  onClick={() => onPageChange(p)}
+                >
+                  {p}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                className={page === totalPages ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
-    </>
+    </div>
   );
 };
