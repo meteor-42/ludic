@@ -106,8 +106,8 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: stri
 
     // Подготовка данных для таблицы этой лиги
     const tableData = leagueBets.map(({ bet, match, globalIndex }, localIndex) => {
-      // Порядковый номер (глобальный)
-      const betNumber = (globalIndex + 1).toString();
+      // Порядковый номер (локальный для каждой лиги, начинается с 1)
+      const betNumber = (localIndex + 1).toString();
 
       // ID ставки из базы (берем последние 6 символов для компактности)
       const betId = bet.id.substring(bet.id.length - 6).toUpperCase();
