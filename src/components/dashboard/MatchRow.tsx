@@ -61,7 +61,7 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
               </span>
               {/* Десктоп: в одну строку, без иконки между командами */}
               <span className="text-sm font-medium truncate hidden sm:inline">
-                {m.home_team} {m.away_team}
+                {m.home_team} — {m.away_team}
               </span>
             </div>
 

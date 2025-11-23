@@ -7,9 +7,9 @@ interface StatCardProps {
 }
 
 export const StatCard = ({ value, label, loading = false }: StatCardProps) => (
-  <div className="flex flex-col items-center justify-center w-20 h-20 bg-background border border-border rounded-lg overflow-hidden">
+  <div className="flex flex-col items-center justify-center h-20 px-3 bg-background border border-border rounded-lg">
     <div className="flex-1 flex items-center justify-center w-full">
-      <span className="text-xl">{loading ? "..." : value}</span>
+      <span className="text-xl whitespace-nowrap">{loading ? "..." : value}</span>
     </div>
     <Separator />
     <div className="w-full bg-muted/30 px-2 py-1 flex items-center justify-center">
