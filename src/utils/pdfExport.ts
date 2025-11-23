@@ -62,16 +62,13 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: stri
   doc.setFont(fontName, "bold");
 
   const title = "История Ставок";
-  const playerText = displayPlayerName ? `${displayPlayerName}` : "";
+  const titleLine = displayPlayerName ? `${title} ${displayPlayerName}` : title;
   const dateText = sortedBets.length > 0
     ? `${firstBetDate} — ${lastBetDate}`
     : `Дата: ${new Date().toLocaleDateString("ru-RU")}`;
 
-  doc.text(title, 105, 15, { align: "center" });
-  if (playerText) {
-    doc.text(playerText, 105, 20, { align: "center" });
-  }
-  doc.text(dateText, 105, playerText ? 25 : 20, { align: "center" });
+  doc.text(titleLine, 105, 15, { align: "center" });
+  doc.text(dateText, 105, 20, { align: "center" });
 
   // Подготовка данных для таблицы
   const tableData = sortedBets
@@ -119,8 +116,8 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: stri
     })
     .filter(Boolean);
 
-  // Вычисляем startY в зависимости от наличия имени игрока
-  const tableStartY = playerText ? 30 : 25;
+  // Вычисляем startY для таблицы
+  const tableStartY = 25;
 
   // Создание таблицы с правильным шрифтом и цветовым кодированием
   autoTable(doc, {
@@ -152,7 +149,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: stri
       6: { cellWidth: 20, halign: "center" }, // Прогноз
     },
     margin: {
-      left: (210 - 165) / 2, // Центрируем таблицу горизонтально (210mm - ширина A4, 165 - сумма ширин столбцов)
+      left: (210 - 155) / 2, // Центрируем таблицу горизонтально (210mm - ширина A4, 155 - сумма ширин столбцов)
       bottom: 15 // Оставляем место для футера
     },
     didParseCell: function (data) {

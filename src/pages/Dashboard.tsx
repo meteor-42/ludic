@@ -192,7 +192,8 @@ export default function Dashboard() {
   };
 
   const handleExportPDF = () => {
-    const betsToExport = showAllBets ? allBets : Object.values(bets);
+    // Всегда экспортируем только ставки текущего пользователя
+    const betsToExport = Object.values(bets);
     if (betsToExport.length === 0) {
       toast({
         variant: "destructive",
@@ -203,7 +204,8 @@ export default function Dashboard() {
       return;
     }
     try {
-      generateBetsPDF(betsToExport, matches);
+      const playerName = user?.display_name || user?.username || 'Игрок';
+      generateBetsPDF(betsToExport, matches, playerName);
       toast({
         title: "PDF создан успешно",
         description: "Файл сохранён в папку загрузок",
