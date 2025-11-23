@@ -65,7 +65,7 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
               </span>
               {/* Десктоп: в одну строку */}
               <span className="text-sm font-medium truncate hidden sm:inline">
-                {m?.home_team && m?.away_team ? `${m.home_team} ${m.away_team}` : ' '}
+                {m?.home_team && m?.away_team ? `${m.home_team} — ${m.away_team}` : ' '}
               </span>
               {hasResult && (
                 <span className="text-xs font-bold text-muted-foreground mt-1">
