@@ -74,9 +74,9 @@ export const MatchesTab = ({
   return (
     <div className="space-y-3">
       {/* Фильтр по лиге и туру */}
-      <div className="flex items-center justify-between mb-3">
-        <Label className="text-lg font-semibold">Выбор</Label>
-        <div className="flex gap-2">
+      <div className="flex items-center justify-between h-9 mb-3">
+        <Label className="text-lg font-semibold leading-none">Выбор</Label>
+        <div className="flex gap-2 w-[160px] justify-end">
           <Select value={leagueFilter} onValueChange={onLeagueFilterChange}>
             <SelectTrigger className="h-9 inline-flex w-auto min-w-0">
               <SelectValue placeholder="Лига" />

@@ -66,26 +66,19 @@ export const LeadersTab = ({ leaders, loading, onRefresh }: LeadersTabProps) => 
 
   return (
     <>
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-lg font-semibold">Таблица лидеров</h3>
-        <div className="flex items-center gap-2">
-          {/* Фильтр лиг */}
-          {!loadingLeagues && availableLeagues.length > 0 && (
+      <div className="flex items-center justify-between h-9 mb-3">
+        <h3 className="text-lg font-semibold leading-none">Таблица лидеров</h3>
+        <div className="flex items-center gap-2 w-[160px] justify-end">
+          {/* Фильтр лиг (резервируем место, чтобы не было прыжка) */}
+          {!loadingLeagues && availableLeagues.length > 0 ? (
             <LeagueFilterComponent
               availableLeagues={availableLeagues}
               filter={leagueFilter}
               onFilterChange={handleFilterChange}
             />
+          ) : (
+            <div className="h-9 w-[160px]" aria-hidden="true" />
           )}
-         {/* <Button
-            variant="outline"
-            onClick={onRefresh}
-            disabled={loading}
-            className="h-9 w-9 p-0"
-            title={loading ? "Обновление..." : "Обновить"}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button> */}
         </div>
       </div>
 
