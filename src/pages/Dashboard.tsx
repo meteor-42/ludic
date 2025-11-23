@@ -191,6 +191,36 @@ export default function Dashboard() {
     navigate("/");
   };
 
+  const handleExportPDF = () => {
+    const betsToExport = showAllBets ? allBets : Object.values(bets);
+    if (betsToExport.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Нет ставок для экспорта",
+        description: "Сделайте хотя бы одну ставку, чтобы экспортировать в PDF",
+        duration: STANDARD_TOAST_DURATION.ERROR,
+      });
+      return;
+    }
+    try {
+      generateBetsPDF(betsToExport, matches);
+      toast({
+        title: "PDF создан успешно",
+        description: "Файл сохранён в папку загрузок",
+        duration: STANDARD_TOAST_DURATION.SUCCESS,
+        icon: "success",
+      });
+    } catch (error) {
+      console.error("Ошибка при создании PDF:", error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка создания PDF",
+        description: "Попробуйте позже",
+        duration: STANDARD_TOAST_DURATION.ERROR,
+      });
+    }
+  };
+
   const handlePick = async (match: Match, pick: "H" | "D" | "A") => {
     if (!user?.id) return;
 
@@ -247,13 +277,14 @@ export default function Dashboard() {
   const betsToShow = showAllBets ? allBets : Object.values(bets);
 
   return (
-    <div className="min-h-screen bg-gradient-subtle p-4">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen p-4 sm:p-6 md:p-8" style={{ background: 'var(--gradient-subtle)' }}>
+      <div className="max-w-4xl mx-auto">
         <Header
           stats={stats}
           statsLoading={statsLoading}
           onLogout={handleLogout}
           onChangePassword={() => setChangePasswordOpen(true)}
+          onExportPDF={handleExportPDF}
         />
         <Separator className="mb-4" />
 
