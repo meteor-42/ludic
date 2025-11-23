@@ -40,7 +40,7 @@ export const LeagueFilterComponent = ({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="inline-flex h-9 w-[160px] min-w-0 px-3 py-2 text-sm font-normal items-center justify-between"
+          className="inline-flex h-9 w-auto min-w-0 px-3 py-2 text-sm font-normal items-center justify-between"
         >
           <span className="truncate">{buttonText}</span>
           <ChevronDown className="h-4 w-4 ml-3 shrink-0 opacity-50" />

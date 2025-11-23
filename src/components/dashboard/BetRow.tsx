@@ -74,34 +74,21 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
               )}
             </div>
 
-            {/* Выбор ставки - прижат к правому краю с более заметной рамкой */}
-            <div className="flex items-stretch gap-1 border border-border rounded-md p-1 bg-background">
-              <div className={cn(
-                "px-3 py-1.5 rounded min-w-[56px] flex items-center justify-center leading-tight",
-                b.pick === 'H' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                <span className="text-sm font-medium">П1</span>
-              </div>
-              <div className={cn(
-                "px-3 py-1.5 rounded min-w-[56px] flex items-center justify-center leading-tight",
-                b.pick === 'D' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                <span className="text-sm font-medium">Х</span>
-              </div>
-              <div className={cn(
-                "px-3 py-1.5 rounded min-w-[56px] flex items-center justify-center leading-tight",
-                b.pick === 'A' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                <span className="text-sm font-medium">П2</span>
+            {/* Выбор ставки - показываем только выбранный исход */}
+            <div className="flex items-stretch border border-border rounded-md p-1 bg-background">
+              <div className="px-3 py-1.5 rounded min-w-[56px] flex items-center justify-center leading-tight bg-primary text-primary-foreground">
+                <span className="text-sm font-medium">
+                  {b.pick === 'H' ? 'П1' : b.pick === 'D' ? 'Х' : 'П2'}
+                </span>
               </div>
             </div>
           </div>
 
           {/* Строка 3: Номер ставки (слева) и очки (справа) */}
           <div className="flex items-center justify-between h-5">
-            {/* Бейдж с номером и ID ставки */}
+            {/* Бейдж с ID ставки */}
             <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded h-5 flex items-center justify-center">
-              {index + 1} • С{b.id?.slice(-6) || '—'}
+              С{b.id?.slice(-6) || '—'}
             </span>
 
             {/* Отображение очков с именем игрока */}
@@ -130,6 +117,15 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
               )}
             </div>
           </div>
+
+          {/* Дата и время принятия ставки */}
+          {b.created && (
+            <div className="flex justify-center border-t border-border pt-2 -mb-1">
+              <span className="text-[11px] font-light text-muted-foreground/70">
+                Принята: {formatMsk(b.created)}
+              </span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

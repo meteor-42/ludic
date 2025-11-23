@@ -1,10 +1,18 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { MatchRow } from './MatchRow';
 import type { Match, Bet } from "@/types/dashboard";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface MatchesTabProps {
   matches: Match[];
@@ -31,6 +39,8 @@ export const MatchesTab = ({
   onPageChange,
   onPick
 }: MatchesTabProps) => {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   // Группировка матчей
   const upcomingMatches = useMemo(() => matches.filter(m => m.status === 'upcoming'), [matches]);
   const groups: Record<string, Match[]> = {};
@@ -76,20 +86,33 @@ export const MatchesTab = ({
       {/* Фильтр по лиге и туру */}
       <div className="flex items-center justify-between h-9 mb-3">
         <Label className="text-lg font-semibold leading-none">Выбор</Label>
-        <div className="flex gap-2 w-[160px] justify-end">
-          <Select value={leagueFilter} onValueChange={onLeagueFilterChange}>
-            <SelectTrigger className="h-9 inline-flex w-auto min-w-0">
-              <SelectValue placeholder="Лига" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все лиги</SelectItem>
-              {uniqueLeagues.map(league => (
-                <SelectItem key={league} value={league}>
-                  {league}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex gap-2 justify-end">
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="inline-flex h-9 w-auto min-w-0 px-3 py-2 text-sm font-normal items-center justify-between"
+              >
+                <span className="truncate">{leagueFilter === "all" ? "Все лиги" : leagueFilter}</span>
+                <ChevronDown className="h-4 w-4 ml-3 shrink-0 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[12rem] p-1">
+              <DropdownMenuRadioGroup
+                value={leagueFilter}
+                onValueChange={onLeagueFilterChange}
+              >
+                <DropdownMenuRadioItem value="all">Все лиги</DropdownMenuRadioItem>
+                <div className="max-h-[300px] overflow-y-auto">
+                  {uniqueLeagues.map((league) => (
+                    <DropdownMenuRadioItem key={league} value={league}>
+                      {league}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </div>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
