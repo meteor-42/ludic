@@ -5,16 +5,40 @@ import { API_URL } from "@/config/api.config";
 const pb = new PocketBase(API_URL);
 pb.autoCancellation(false);
 
+// Вспомогательная функция для загрузки всех записей с пагинацией
+async function getAllRecords<T>(
+  collection: string,
+  options: { filter?: string; sort?: string } = {}
+): Promise<T[]> {
+  const allItems: T[] = [];
+  let page = 1;
+  const perPage = 500; // Используем 500 для безопасности (серверный лимит может быть 1000)
+
+  while (true) {
+    const result = await pb.collection(collection).getList<T>(page, perPage, options);
+    allItems.push(...result.items);
+
+    // Если получили меньше записей, чем запрашивали, значит это последняя страница
+    if (result.items.length < perPage || page * perPage >= result.totalItems) {
+      break;
+    }
+
+    page++;
+  }
+
+  return allItems;
+}
+
 export class LeagueService {
   static async loadLeadersWithLeagueStats(): Promise<LeaderData[]> {
-    const [betsList, matchesList] = await Promise.all([
-      pb.collection('bets').getList<Bet>(1, 10000, {}),
-      pb.collection('matches').getList<Match>(1, 10000, {})
+    const [betsItems, matchesItems] = await Promise.all([
+      getAllRecords<Bet>('bets', {}),
+      getAllRecords<Match>('matches', {})
     ]);
 
     // Создаем карту матчей для быстрого доступа к лиге
     const matchesMap = new Map<string, Match>();
-    matchesList.items.forEach(match => {
+    matchesItems.forEach(match => {
       matchesMap.set(match.id, match);
     });
 
@@ -27,7 +51,7 @@ export class LeagueService {
       leagueStats: Map<string, LeagueStats>;
     }>();
 
-    for (const bet of betsList.items) {
+    for (const bet of betsItems) {
       const uid = bet.user_id as string;
       const match = matchesMap.get(bet.match_id as string);
 
@@ -83,9 +107,9 @@ export class LeagueService {
     }
 
     // Загружаем пользователей
-    const usersList = await pb.collection('users').getList<PBUserRecord>(1, 10000, {});
+    const usersItems = await getAllRecords<PBUserRecord>('users', {});
 
-    const result = usersList.items.map(user => {
+    const result = usersItems.map(user => {
       const stats = userStats.get(user.id) || {
         points: 0,
         totalBets: 0,
@@ -119,10 +143,10 @@ export class LeagueService {
   }
 
   static async getAvailableLeagues(): Promise<string[]> {
-    const matchesList = await pb.collection('matches').getList<Match>(1, 10000, {});
+    const matchesItems = await getAllRecords<Match>('matches', {});
     const leagues = new Set<string>();
 
-    matchesList.items.forEach(match => {
+    matchesItems.forEach(match => {
       if (match.league) {
         leagues.add(match.league);
       }
