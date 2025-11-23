@@ -58,7 +58,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: stri
   const displayPlayerName = playerName || (sortedBets.length > 0 ? sortedBets[0].display_name : "") || "";
 
   // Заголовок
-  doc.setFontSize(8);
+  doc.setFontSize(13);
   doc.setFont(fontName, "bold");
 
   const title = "История Ставок";
@@ -143,13 +143,13 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: stri
       fontStyle: "normal",
     },
     columnStyles: {
-      0: { cellWidth: 10, halign: "center" }, // №
+      0: { cellWidth: 15, halign: "center" }, // №
       1: { cellWidth: 15, halign: "center" }, // ID ставки
-      2: { cellWidth: 25, halign: "center" }, // Дата
-      3: { cellWidth: 28, halign: "center" }, // Лига
-      4: { cellWidth: 55, halign: "center" }, // Команды
-      5: { cellWidth: 17, halign: "center" }, // Результат
-      6: { cellWidth: 15, halign: "center" }, // Прогноз
+      2: { cellWidth: 20, halign: "center" }, // Дата
+      3: { cellWidth: 15, halign: "center" }, // Лига
+      4: { cellWidth: 50, halign: "center" }, // Команды
+      5: { cellWidth: 20, halign: "center" }, // Результат
+      6: { cellWidth: 20, halign: "center" }, // Прогноз
     },
     margin: {
       left: (210 - 165) / 2, // Центрируем таблицу горизонтально (210mm - ширина A4, 165 - сумма ширин столбцов)
