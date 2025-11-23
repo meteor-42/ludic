@@ -56,15 +56,8 @@ export const BetRow = ({ bet: b, index, match: m }: BetRowProps) => {
           <div className="flex items-center justify-between gap-2">
             {/* Команды - прижаты к левому краю */}
             <div className="flex flex-col flex-1">
-              {/* Мобильная версия: в две строки, без разделителя */}
-              <span className="text-sm font-medium leading-tight break-words sm:hidden">
-                {m?.home_team}
-              </span>
-              <span className="text-sm font-medium leading-tight break-words sm:hidden">
-                {m?.away_team}
-              </span>
-              {/* Десктоп: в одну строку */}
-              <span className="text-sm font-medium truncate hidden sm:inline">
+              {/* Команды в одну строку для всех устройств */}
+              <span className="text-sm font-medium break-words">
                 {m?.home_team && m?.away_team ? `${m.home_team} — ${m.away_team}` : ' '}
               </span>
               {hasResult && (
