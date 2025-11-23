@@ -71,7 +71,7 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
                 type="button"
                 onClick={() => !disabled && onPick('H')}
                 className={cn(
-                  "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center cursor-pointer leading-tight",
+                  "px-3 py-1.5 rounded min-w-[56px] flex items-center justify-center cursor-pointer leading-tight",
                   "transition-colors",
                   selected === 'H'
                     ? "bg-primary text-primary-foreground"
@@ -80,18 +80,12 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
                 )}
               >
                 <span className="text-sm font-medium">П1</span>
-                <span className={cn(
-                  "text-[11px] mt-0.5",
-                  selected === 'H' ? "text-primary-foreground/90" : "text-foreground/60"
-                )}>
-                  {typeof m.odd_home === 'number' ? m.odd_home.toFixed(2) : '—'}
-                </span>
               </button>
               <button
                 type="button"
                 onClick={() => !disabled && onPick('D')}
                 className={cn(
-                  "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center cursor-pointer leading-tight",
+                  "px-3 py-1.5 rounded min-w-[56px] flex items-center justify-center cursor-pointer leading-tight",
                   "transition-colors",
                   selected === 'D'
                     ? "bg-primary text-primary-foreground"
@@ -100,18 +94,12 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
                 )}
               >
                 <span className="text-sm font-medium">Х</span>
-                <span className={cn(
-                  "text-[11px] mt-0.5",
-                  selected === 'D' ? "text-primary-foreground/90" : "text-foreground/60"
-                )}>
-                  {typeof m.odd_draw === 'number' ? m.odd_draw.toFixed(2) : '—'}
-                </span>
               </button>
               <button
                 type="button"
                 onClick={() => !disabled && onPick('A')}
                 className={cn(
-                  "px-3 py-1.5 rounded min-w-[56px] flex flex-col items-center justify-center cursor-pointer leading-tight",
+                  "px-3 py-1.5 rounded min-w-[56px] flex items-center justify-center cursor-pointer leading-tight",
                   "transition-colors",
                   selected === 'A'
                     ? "bg-primary text-primary-foreground"
@@ -120,12 +108,6 @@ export const MatchRow = ({ match: m, index, selectedBet, isSaving, onPick }: Mat
                 )}
               >
                 <span className="text-sm font-medium">П2</span>
-                <span className={cn(
-                  "text-[11px] mt-0.5",
-                  selected === 'A' ? "text-primary-foreground/90" : "text-foreground/60"
-                )}>
-                  {typeof m.odd_away === 'number' ? m.odd_away.toFixed(2) : '—'}
-                </span>
               </button>
             </div>
           </div>
