@@ -62,22 +62,52 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: stri
   doc.setFont(fontName, "bold");
 
   const title = "История Ставок";
-  const titleLine = displayPlayerName ? `${title} ${displayPlayerName}` : title;
+  const titleLine = displayPlayerName ? `${title} — ${displayPlayerName}` : title;
   const dateText = sortedBets.length > 0
     ? `${firstBetDate} — ${lastBetDate}`
     : `Дата: ${new Date().toLocaleDateString("ru-RU")}`;
 
   doc.text(titleLine, 105, 15, { align: "center" });
-  doc.text(dateText, 105, 20, { align: "center" });
 
-  // Подготовка данных для таблицы
-  const tableData = sortedBets
-    .map((bet, index) => {
-      const match = matches.find((m) => m.id === bet.match_id);
-      if (!match) return null;
+  // Даты меньшим размером
+  doc.setFontSize(10);
+  doc.setFont(fontName, "normal");
+  doc.text(dateText, 105, 21, { align: "center" });
 
-      // Порядковый номер
-      const betNumber = (index + 1).toString();
+  // Группируем ставки по лигам
+  const betsByLeague: Record<string, Array<{ bet: Bet; match: Match; globalIndex: number }>> = {};
+
+  sortedBets.forEach((bet, globalIndex) => {
+    const match = matches.find((m) => m.id === bet.match_id);
+    if (!match) return;
+
+    const league = match.league || "Без лиги";
+    if (!betsByLeague[league]) {
+      betsByLeague[league] = [];
+    }
+    betsByLeague[league].push({ bet, match, globalIndex });
+  });
+
+  // Получаем отсортированный список лиг
+  const leagues = Object.keys(betsByLeague).sort();
+
+  // Начальная позиция для первой таблицы
+  let currentY = 26;
+
+  // Создаем таблицу для каждой лиги
+  leagues.forEach((league, leagueIndex) => {
+    const leagueBets = betsByLeague[league];
+
+    // Добавляем заголовок лиги
+    doc.setFontSize(11);
+    doc.setFont(fontName, "bold");
+    doc.text(league, 105, currentY, { align: "center" });
+    currentY += 5;
+
+    // Подготовка данных для таблицы этой лиги
+    const tableData = leagueBets.map(({ bet, match, globalIndex }, localIndex) => {
+      // Порядковый номер (глобальный)
+      const betNumber = (globalIndex + 1).toString();
 
       // ID ставки из базы (берем последние 6 символов для компактности)
       const betId = bet.id.substring(bet.id.length - 6).toUpperCase();
@@ -102,76 +132,72 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: stri
       const matchResult = hasResult ? `${match.home_score} — ${match.away_score}` : "—";
 
       return {
-        data: [
-          betNumber,
-          betId,
-          matchDate,
-          match.league || "",
-          teams,
-          matchResult,
-          pickLabel,
-        ],
-        isWon: bet.points === 3, // true если выiграно, false если проиграно
+        data: [betNumber, betId, matchDate, teams, matchResult, pickLabel],
+        isWon: bet.points === 3,
       };
-    })
-    .filter(Boolean);
+    });
 
-  // Вычисляем startY для таблицы
-  const tableStartY = 25;
-
-  // Создание таблицы с правильным шрифтом и цветовым кодированием
-  autoTable(doc, {
-    startY: tableStartY,
-    head: [["№", "ID", "Дата", "Лига", "Команды", "Результат", "Прогноз"]],
-    body: tableData.map(item => item!.data) as string[][],
-    theme: "grid",
-    headStyles: {
-      fillColor: [0, 0, 0],
-      textColor: [255, 255, 255],
-      fontSize: 8,
-      fontStyle: "bold",
-      font: fontName,
-      halign: "center", // Центрируем все заголовки
-    },
-    styles: {
-      fontSize: 8,
-      cellPadding: 2,
-      font: fontName,
-      fontStyle: "normal",
-    },
-    columnStyles: {
-      0: { cellWidth: 15, halign: "center" }, // №
-      1: { cellWidth: 15, halign: "center" }, // ID ставки
-      2: { cellWidth: 20, halign: "center" }, // Дата
-      3: { cellWidth: 15, halign: "center" }, // Лига
-      4: { cellWidth: 50, halign: "center" }, // Команды
-      5: { cellWidth: 20, halign: "center" }, // Результат
-      6: { cellWidth: 20, halign: "center" }, // Прогноз
-    },
-    margin: {
-      left: (210 - 155) / 2, // Центрируем таблицу горизонтально (210mm - ширина A4, 155 - сумма ширин столбцов)
-      bottom: 15 // Оставляем место для футера
-    },
-    didParseCell: function (data) {
-      // Устанавливаем фон для строк данных
-      if (data.section === 'body' && data.row.index < tableData.length) {
-        const rowData = tableData[data.row.index];
-        if (rowData && !rowData.isWon) {
-          // Светло-серый фон для проигрышей
-          data.cell.styles.fillColor = [220, 220, 220];
-        } else {
-          // Белый фон для выигрышей
-          data.cell.styles.fillColor = [255, 255, 255];
+    // Создание таблицы для этой лиги
+    autoTable(doc, {
+      startY: currentY,
+      head: [["№", "ID", "Дата", "Команды", "Результат", "Прогноз"]],
+      body: tableData.map(item => item.data) as string[][],
+      theme: "grid",
+      headStyles: {
+        fillColor: [0, 0, 0],
+        textColor: [255, 255, 255],
+        fontSize: 8,
+        fontStyle: "bold",
+        font: fontName,
+        halign: "center",
+      },
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        font: fontName,
+        fontStyle: "normal",
+      },
+      columnStyles: {
+        0: { cellWidth: 15, halign: "center" }, // №
+        1: { cellWidth: 15, halign: "center" }, // ID ставки
+        2: { cellWidth: 20, halign: "center" }, // Дата
+        3: { cellWidth: 60, halign: "center" }, // Команды (шире, т.к. нет колонки Лига)
+        4: { cellWidth: 20, halign: "center" }, // Результат
+        5: { cellWidth: 20, halign: "center" }, // Прогноз
+      },
+      margin: {
+        left: (210 - 150) / 2, // Центрируем таблицу
+        bottom: 15
+      },
+      didParseCell: function (data) {
+        if (data.section === 'body' && data.row.index < tableData.length) {
+          const rowData = tableData[data.row.index];
+          if (rowData && !rowData.isWon) {
+            data.cell.styles.fillColor = [220, 220, 220];
+          } else {
+            data.cell.styles.fillColor = [255, 255, 255];
+          }
         }
-      }
-    },
-    didDrawPage: function (data) {
-      // Футер на каждой странице
-      const pageHeight = doc.internal.pageSize.height;
-      doc.setFontSize(8);
-      doc.setFont(fontName, "bold");
-      doc.text("лудик.рф", 105, pageHeight - 10, { align: "center" });
-    },
+      },
+      didDrawPage: function (data) {
+        const pageHeight = doc.internal.pageSize.height;
+        doc.setFontSize(8);
+        doc.setFont(fontName, "bold");
+        doc.text("лудик.рф", 105, pageHeight - 10, { align: "center" });
+      },
+    });
+
+    // Обновляем currentY для следующей таблицы
+    if (doc.lastAutoTable) {
+      currentY = doc.lastAutoTable.finalY + 8; // 8mm отступ между таблицами
+    }
+
+    // Проверка на необходимость новой страницы
+    const pageHeight = doc.internal.pageSize.height;
+    if (currentY > pageHeight - 30 && leagueIndex < leagues.length - 1) {
+      doc.addPage();
+      currentY = 20; // Начинаем с верха новой страницы
+    }
   });
 
   // Сохранение PDF (без статистики и легенды)
