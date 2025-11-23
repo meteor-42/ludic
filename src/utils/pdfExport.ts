@@ -1,3 +1,4 @@
+
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Bet, Match } from "@/types/dashboard";
@@ -46,8 +47,13 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   doc.setFont(fontName, "normal");
   doc.text(dateText, 105, 22, { align: "center" });
 
+  // Фильтруем только рассчитанные ставки (points = 1 или 3)
+  const calculatedBets = bets.filter((bet) => 
+    typeof bet.points === 'number' && (bet.points === 1 || bet.points === 3)
+  );
+
   // Сортировка ставок по дате (новые сверху)
-  const sortedBets = [...bets].sort((a, b) => {
+  const sortedBets = [...calculatedBets].sort((a, b) => {
     const da = a.created ? new Date(a.created).getTime() : 0;
     const db = b.created ? new Date(b.created).getTime() : 0;
     return db - da;
@@ -59,31 +65,43 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       const match = matches.find((m) => m.id === bet.match_id);
       if (!match) return null;
 
-      const pickLabel = bet.pick === "H" ? "П1" : bet.pick === "D" ? "Х" : "П2";
-      const result =
-        bet.result === "win" ? "✓" : bet.result === "loss" ? "✗" : "-";
-      const matchDate = match.fixture_date
-        ? new Date(match.fixture_date).toLocaleDateString("ru-RU", {
+      // Дата матча из starts_at
+      const matchDate = match.starts_at
+        ? new Date(match.starts_at).toLocaleDateString("ru-RU", {
             day: "2-digit",
             month: "2-digit",
+            year: "numeric",
           })
         : "";
 
-      return [
-        matchDate,
-        `${match.home_team} - ${match.away_team}`,
-        match.league || "",
-        pickLabel,
-        result,
-      ];
+      // Прогноз: П1 (Победа 1), Х (Ничья), П2 (Победа 2)
+      const pickLabel = bet.pick === "H" ? "Победа 1" : bet.pick === "D" ? "Ничья" : "Победа 2";
+      
+      // Результат матча
+      const hasResult = typeof match.home_score === 'number' && typeof match.away_score === 'number';
+      const matchResult = hasResult ? `${match.home_score} — ${match.away_score}` : "—";
+
+      // Результат пари: 3 очка = Угадано, 1 очко = Не угадано
+      const betResult = bet.points === 3 ? "Угадано" : "Не угадано";
+
+      return {
+        data: [
+          matchDate,
+          match.league || "",
+          matchResult,
+          pickLabel,
+          betResult,
+        ],
+        isWon: bet.points === 3, // true если выиграно, false если проиграно
+      };
     })
     .filter(Boolean);
 
-  // Создание таблицы с правильным шрифтом
+  // Создание таблицы с правильным шрифтом и цветовым кодированием
   autoTable(doc, {
     startY: 30,
-    head: [["Дата", "Матч", "Лига", "Выбор", "Результат"]],
-    body: tableData as string[][],
+    head: [["Дата", "Лига", "Результат матча", "Прогноз", "Результат пари"]],
+    body: tableData.map(item => item!.data) as string[][],
     theme: "grid",
     headStyles: {
       fillColor: [0, 0, 0],
@@ -99,36 +117,27 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       fontStyle: "normal",
     },
     columnStyles: {
-      0: { cellWidth: 20 },
-      1: { cellWidth: "auto" },
-      2: { cellWidth: 40 },
-      3: { cellWidth: 20, halign: "center" },
-      4: { cellWidth: 20, halign: "center" },
+      0: { cellWidth: 30 },
+      1: { cellWidth: 45 },
+      2: { cellWidth: 35, halign: "center" },
+      3: { cellWidth: 35 },
+      4: { cellWidth: 35, halign: "center" },
+    },
+    didParseCell: function (data) {
+      // Устанавливаем фон для строк данных
+      if (data.section === 'body' && data.row.index < tableData.length) {
+        const rowData = tableData[data.row.index];
+        if (rowData && !rowData.isWon) {
+          // Светло-серый фон для проигрышей
+          data.cell.styles.fillColor = [220, 220, 220];
+        } else {
+          // Белый фон для выигрышей
+          data.cell.styles.fillColor = [255, 255, 255];
+        }
+      }
     },
   });
 
-  // Статистика внизу
-  const totalBets = bets.length;
-  const wins = bets.filter((b) => b.result === "win").length;
-  const losses = bets.filter((b) => b.result === "loss").length;
-  const pending = bets.filter((b) => !b.result || b.result === "pending").length;
-  const successRate =
-    totalBets > 0 && wins + losses > 0
-      ? ((wins / (wins + losses)) * 100).toFixed(1)
-      : "0.0";
-
-  const finalY = doc.lastAutoTable?.finalY || 30;
-  doc.setFontSize(11);
-  doc.setFont(fontName, "bold");
-  doc.text("Статистика:", 14, finalY + 15);
-  doc.setFont(fontName, "normal");
-  doc.setFontSize(10);
-  doc.text(`Всего ставок: ${totalBets}`, 14, finalY + 22);
-  doc.text(`Выиграно: ${wins}`, 14, finalY + 28);
-  doc.text(`Проиграно: ${losses}`, 14, finalY + 34);
-  doc.text(`В ожидании: ${pending}`, 14, finalY + 40);
-  doc.text(`Точность: ${successRate}%`, 14, finalY + 46);
-
-  // Сохранение PDF
+  // Сохранение PDF (без статистики и легенды)
   doc.save(`ludic-bets-${new Date().toISOString().split("T")[0]}.pdf`);
 };
