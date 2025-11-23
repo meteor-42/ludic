@@ -18,6 +18,7 @@ import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 // Services
 import { ApiService } from "@/services/api";
 import { LeagueService } from "@/services/leagueService";
+import { generateBetsPDF } from "@/utils/pdfExport";
 const MATCHES_POLL_MS = 30000;
 
 export default function Dashboard() {

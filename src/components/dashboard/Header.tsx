@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { LogOut, Key } from "lucide-react";
+import { LogOut, Key, FileDown } from "lucide-react";
 import { StatCard } from "./StatCard";
 import type { Stats } from "@/types/dashboard";
 
@@ -8,9 +8,10 @@ interface HeaderProps {
   statsLoading: boolean;
   onLogout: () => void;
   onChangePassword: () => void;
+  onExportPDF: () => void;
 }
 
-export const Header = ({ stats, statsLoading, onLogout, onChangePassword }: HeaderProps) => (
+export const Header = ({ stats, statsLoading, onLogout, onChangePassword, onExportPDF }: HeaderProps) => (
   <header className="flex items-center justify-between py-4">
     <div className="flex items-center gap-3">
       <span className="inline-flex items-center px-4 py-2 text-sm font-bold uppercase tracking-wide bg-black text-white border-none">
@@ -28,6 +29,9 @@ export const Header = ({ stats, statsLoading, onLogout, onChangePassword }: Head
       </div>
 
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={onExportPDF} title="Экспорт в PDF">
+          <FileDown className="h-5 w-5" />
+        </Button>
         <Button variant="ghost" size="icon" onClick={onChangePassword} title="Изменить пароль">
           <Key className="h-5 w-5" />
         </Button>

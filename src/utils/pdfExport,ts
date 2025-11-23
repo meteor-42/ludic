@@ -1,0 +1,151 @@
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import type { Bet, Match } from '@/types/dashboard';
+import { formatMsk } from './dashboard';
+
+interface ExportPDFOptions {
+  bets: Bet[];
+  matches: Match[];
+  userName: string;
+}
+
+export const generateBetsPDF = ({ bets, matches, userName }: ExportPDFOptions) => {
+  // Создаем новый PDF документ
+  const doc = new jsPDF();
+
+  // Устанавливаем шрифты
+  doc.setFont('helvetica');
+
+  // Заголовок документа
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ЛУДИК.РФ', 105, 20, { align: 'center' });
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'normal');
+  doc.text('История ставок', 105, 30, { align: 'center' });
+
+  // Имя пользователя
+  doc.setFontSize(12);
+  doc.text(`Игрок: ${userName}`, 105, 40, { align: 'center' });
+
+  // Дата генерации
+  doc.setFontSize(10);
+  doc.setTextColor(128, 128, 128);
+  const currentDate = new Date().toLocaleDateString('ru-RU', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  doc.text(`Сгенерировано: ${currentDate}`, 105, 48, { align: 'center' });
+
+  // Подготовка данных для таблицы
+  const tableData = bets
+    .sort((a, b) => {
+      const da = a.created ? new Date(a.created).getTime() : 0;
+      const db = b.created ? new Date(b.created).getTime() : 0;
+      return db - da;
+    })
+    .map((bet) => {
+      const match = matches.find(m => m.id === bet.match_id);
+      const pickLabel = bet.pick === 'H' ? 'П1' : bet.pick === 'D' ? 'Х' : 'П2';
+      const teams = match ? `${match.home_team} — ${match.away_team}` : '—';
+      const league = match?.league || '—';
+      const matchDate = match ? formatMsk(match.starts_at) : '—';
+      const betDate = bet.created ? formatMsk(bet.created) : '—';
+
+      let status = 'Не рассчитано';
+      if (typeof bet.points === 'number') {
+        if (bet.points === 3) {
+          status = '✓ Выигрыш (+3)';
+        } else if (bet.points === 1) {
+          status = '✗ Проигрыш';
+        }
+      }
+
+      const result = match && typeof match.home_score === 'number' && typeof match.away_score === 'number'
+        ? `${match.home_score}:${match.away_score}`
+        : '—';
+
+      return [
+        betDate,
+        league,
+        teams,
+        matchDate,
+        pickLabel,
+        result,
+        status
+      ];
+    });
+
+  // Создаем таблицу
+  autoTable(doc, {
+    startY: 55,
+    head: [['Дата ставки', 'Лига', 'Матч', 'Дата матча', 'Выбор', 'Счет', 'Статус']],
+    body: tableData,
+    theme: 'striped',
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+      halign: 'center',
+      font: 'helvetica'
+    },
+    headStyles: {
+      fillColor: [0, 0, 0],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
+    },
+    columnStyles: {
+      0: { cellWidth: 25 }, // Дата ставки
+      1: { cellWidth: 30 }, // Лига
+      2: { cellWidth: 50 }, // Матч
+      3: { cellWidth: 25 }, // Дата матча
+      4: { cellWidth: 15 }, // Выбор
+      5: { cellWidth: 15 }, // Счет
+      6: { cellWidth: 30 }  // Статус
+    },
+    didParseCell: function(data) {
+      // Окрашиваем статусы
+      if (data.column.index === 6 && data.section === 'body') {
+        const cellValue = data.cell.text[0];
+        if (cellValue.includes('Выигрыш')) {
+          data.cell.styles.textColor = [34, 197, 94]; // Зеленый
+          data.cell.styles.fontStyle = 'bold';
+        } else if (cellValue.includes('Проигрыш')) {
+          data.cell.styles.textColor = [239, 68, 68]; // Красный
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+    margin: { top: 55, left: 10, right: 10 }
+  });
+
+  // Статистика внизу
+  const finalY = (doc as any).lastAutoTable.finalY || 55;
+
+  if (finalY < 270) {
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+
+    const totalBets = bets.length;
+    const calculatedBets = bets.filter(b => typeof b.points === 'number').length;
+    const wonBets = bets.filter(b => b.points === 3).length;
+    const lostBets = bets.filter(b => b.points === 1).length;
+    const successRate = calculatedBets > 0 ? ((wonBets / calculatedBets) * 100).toFixed(1) : '0.0';
+
+    doc.text(`Всего ставок: ${totalBets}`, 105, finalY + 15, { align: 'center' });
+    doc.text(`Рассчитано: ${calculatedBets} | Выигрыш: ${wonBets} | Проигрыш: ${lostBets}`, 105, finalY + 22, { align: 'center' });
+    doc.text(`Процент успеха: ${successRate}%`, 105, finalY + 29, { align: 'center' });
+  }
+
+  // Сохраняем PDF
+  const fileName = `ludic_bets_${userName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(fileName);
+};
