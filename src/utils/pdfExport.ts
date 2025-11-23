@@ -11,7 +11,7 @@ interface ExtendedJsPDF extends jsPDF {
   addFont?: (fileName: string, fontName: string, fontStyle: string) => void;
 }
 
-export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
+export const generateBetsPDF = (bets: Bet[], matches: Match[], playerName?: string) => {
   const doc = new jsPDF() as ExtendedJsPDF;
 
   // Добавляем кириллический шрифт Roboto (normal и bold)
@@ -54,19 +54,24 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
     ? new Date(sortedBets[sortedBets.length - 1].created).toLocaleDateString("ru-RU")
     : "";
 
+  // Получаем имя игрока из ставок или используем переданное
+  const displayPlayerName = playerName || (sortedBets.length > 0 ? sortedBets[0].display_name : "") || "";
+
   // Заголовок
-  doc.setFontSize(20);
+  doc.setFontSize(8);
   doc.setFont(fontName, "bold");
 
   const title = "История Ставок";
+  const playerText = displayPlayerName ? `${displayPlayerName}` : "";
   const dateText = sortedBets.length > 0
     ? `${firstBetDate} — ${lastBetDate}`
     : `Дата: ${new Date().toLocaleDateString("ru-RU")}`;
 
   doc.text(title, 105, 15, { align: "center" });
-  doc.setFontSize(10);
-  doc.setFont(fontName, "normal");
-  doc.text(dateText, 105, 22, { align: "center" });
+  if (playerText) {
+    doc.text(playerText, 105, 20, { align: "center" });
+  }
+  doc.text(dateText, 105, playerText ? 25 : 20, { align: "center" });
 
   // Подготовка данных для таблицы
   const tableData = sortedBets
@@ -76,6 +81,9 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
 
       // Порядковый номер
       const betNumber = (index + 1).toString();
+
+      // ID ставки из базы (берем последние 6 символов для компактности)
+      const betId = bet.id.substring(bet.id.length - 6).toUpperCase();
 
       // Дата матча из starts_at
       const matchDate = match.starts_at
@@ -99,27 +107,31 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       return {
         data: [
           betNumber,
+          betId,
           matchDate,
           match.league || "",
           teams,
           matchResult,
           pickLabel,
         ],
-        isWon: bet.points === 3, // true если выиграно, false если проиграно
+        isWon: bet.points === 3, // true если выiграно, false если проиграно
       };
     })
     .filter(Boolean);
 
+  // Вычисляем startY в зависимости от наличия имени игрока
+  const tableStartY = playerText ? 30 : 25;
+
   // Создание таблицы с правильным шрифтом и цветовым кодированием
   autoTable(doc, {
-    startY: 30,
-    head: [["№", "Дата", "Лига", "Команды", "Результат", "Прогноз"]],
+    startY: tableStartY,
+    head: [["№", "ID", "Дата", "Лига", "Команды", "Результат", "Прогноз"]],
     body: tableData.map(item => item!.data) as string[][],
     theme: "grid",
     headStyles: {
       fillColor: [0, 0, 0],
       textColor: [255, 255, 255],
-      fontSize: 10,
+      fontSize: 8,
       fontStyle: "bold",
       font: fontName,
       halign: "center", // Центрируем все заголовки
@@ -132,13 +144,17 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
     },
     columnStyles: {
       0: { cellWidth: 10, halign: "center" }, // №
-      1: { cellWidth: 25, halign: "center" }, // Дата
-      2: { cellWidth: 30, halign: "center" }, // Лига
-      3: { cellWidth: 60, halign: "center" }, // Команды
-      4: { cellWidth: 20, halign: "center" }, // Результат
-      5: { cellWidth: 20, halign: "center" }, // Прогноз
+      1: { cellWidth: 15, halign: "center" }, // ID ставки
+      2: { cellWidth: 25, halign: "center" }, // Дата
+      3: { cellWidth: 28, halign: "center" }, // Лига
+      4: { cellWidth: 55, halign: "center" }, // Команды
+      5: { cellWidth: 17, halign: "center" }, // Результат
+      6: { cellWidth: 15, halign: "center" }, // Прогноз
     },
-    margin: { left: (210 - 165) / 2 }, // Центрируем таблицу горизонтально (210mm - ширина A4, 165 - сумма ширин столбцов)
+    margin: {
+      left: (210 - 165) / 2, // Центрируем таблицу горизонтально (210mm - ширина A4, 165 - сумма ширин столбцов)
+      bottom: 15 // Оставляем место для футера
+    },
     didParseCell: function (data) {
       // Устанавливаем фон для строк данных
       if (data.section === 'body' && data.row.index < tableData.length) {
@@ -151,6 +167,13 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
           data.cell.styles.fillColor = [255, 255, 255];
         }
       }
+    },
+    didDrawPage: function (data) {
+      // Футер на каждой странице
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(8);
+      doc.setFont(fontName, "bold");
+      doc.text("лудик.рф", 105, pageHeight - 10, { align: "center" });
     },
   });
 
