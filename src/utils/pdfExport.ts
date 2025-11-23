@@ -1,4 +1,3 @@
-
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Bet, Match } from "@/types/dashboard";
@@ -35,35 +34,48 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
     fontName = "helvetica";
   }
 
+  // Фильтруем только рассчитанные ставки (points = 1 или 3)
+  const calculatedBets = bets.filter((bet) =>
+    typeof bet.points === 'number' && (bet.points === 1 || bet.points === 3)
+  );
+
+  // Сортировка ставок по дате (старые сверху для правильной нумерации)
+  const sortedBets = [...calculatedBets].sort((a, b) => {
+    const da = a.created ? new Date(a.created).getTime() : 0;
+    const db = b.created ? new Date(b.created).getTime() : 0;
+    return da - db;
+  });
+
+  // Получаем даты первой и последней ставки
+  const firstBetDate = sortedBets.length > 0 && sortedBets[0].created
+    ? new Date(sortedBets[0].created).toLocaleDateString("ru-RU")
+    : "";
+  const lastBetDate = sortedBets.length > 0 && sortedBets[sortedBets.length - 1].created
+    ? new Date(sortedBets[sortedBets.length - 1].created).toLocaleDateString("ru-RU")
+    : "";
+
   // Заголовок
   doc.setFontSize(20);
   doc.setFont(fontName, "bold");
 
   const title = "История Ставок";
-  const dateText = `Дата: ${new Date().toLocaleDateString("ru-RU")}`;
+  const dateText = sortedBets.length > 0
+    ? `${firstBetDate} — ${lastBetDate}`
+    : `Дата: ${new Date().toLocaleDateString("ru-RU")}`;
 
   doc.text(title, 105, 15, { align: "center" });
   doc.setFontSize(10);
   doc.setFont(fontName, "normal");
   doc.text(dateText, 105, 22, { align: "center" });
 
-  // Фильтруем только рассчитанные ставки (points = 1 или 3)
-  const calculatedBets = bets.filter((bet) => 
-    typeof bet.points === 'number' && (bet.points === 1 || bet.points === 3)
-  );
-
-  // Сортировка ставок по дате (новые сверху)
-  const sortedBets = [...calculatedBets].sort((a, b) => {
-    const da = a.created ? new Date(a.created).getTime() : 0;
-    const db = b.created ? new Date(b.created).getTime() : 0;
-    return db - da;
-  });
-
   // Подготовка данных для таблицы
   const tableData = sortedBets
-    .map((bet) => {
+    .map((bet, index) => {
       const match = matches.find((m) => m.id === bet.match_id);
       if (!match) return null;
+
+      // Порядковый номер
+      const betNumber = (index + 1).toString();
 
       // Дата матча из starts_at
       const matchDate = match.starts_at
@@ -74,23 +86,24 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
           })
         : "";
 
+      // Названия команд
+      const teams = `${match.home_team} — ${match.away_team}`;
+
       // Прогноз: П1 (Победа 1), Х (Ничья), П2 (Победа 2)
       const pickLabel = bet.pick === "H" ? "П1" : bet.pick === "D" ? "X" : "П2";
-      
+
       // Результат матча
       const hasResult = typeof match.home_score === 'number' && typeof match.away_score === 'number';
       const matchResult = hasResult ? `${match.home_score} — ${match.away_score}` : "—";
 
-      // Результат пари: 3 очка = Угадано, 1 очко = Не угадано
-      // const betResult = bet.points === 3 ? "Угадано" : "Не угадано";
-
       return {
         data: [
+          betNumber,
           matchDate,
           match.league || "",
+          teams,
           matchResult,
           pickLabel,
-          // betResult,
         ],
         isWon: bet.points === 3, // true если выиграно, false если проиграно
       };
@@ -100,7 +113,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   // Создание таблицы с правильным шрифтом и цветовым кодированием
   autoTable(doc, {
     startY: 30,
-    head: [["Дата", "Лига", "Результат", "Прогноз"]],
+    head: [["№", "Дата", "Лига", "Команды", "Результат", "Прогноз"]],
     body: tableData.map(item => item!.data) as string[][],
     theme: "grid",
     headStyles: {
@@ -109,20 +122,23 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
       fontSize: 10,
       fontStyle: "bold",
       font: fontName,
+      halign: "center", // Центрируем все заголовки
     },
     styles: {
-      fontSize: 9,
-      cellPadding: 3,
+      fontSize: 8,
+      cellPadding: 2,
       font: fontName,
       fontStyle: "normal",
     },
     columnStyles: {
-      0: { cellWidth: 30, halign: "center" },
-      1: { cellWidth: 35, halign: "center" },
-      2: { cellWidth: 35, halign: "center" },
-      3: { cellWidth: 35, halign: "center" },
-      // 4: { cellWidth: 35, halign: "center" },
+      0: { cellWidth: 10, halign: "center" }, // №
+      1: { cellWidth: 25, halign: "center" }, // Дата
+      2: { cellWidth: 30, halign: "center" }, // Лига
+      3: { cellWidth: 60, halign: "center" }, // Команды
+      4: { cellWidth: 20, halign: "center" }, // Результат
+      5: { cellWidth: 20, halign: "center" }, // Прогноз
     },
+    margin: { left: (210 - 165) / 2 }, // Центрируем таблицу горизонтально (210mm - ширина A4, 165 - сумма ширин столбцов)
     didParseCell: function (data) {
       // Устанавливаем фон для строк данных
       if (data.section === 'body' && data.row.index < tableData.length) {
