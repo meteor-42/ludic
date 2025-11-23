@@ -15,7 +15,7 @@ export const generateBetsPDF = (bets: Bet[], matches: Match[]) => {
   const doc = new jsPDF() as ExtendedJsPDF;
 
   // Добавляем кириллический шрифт Roboto (normal и bold)
-  let fontName = "helvetica"; // fallback
+  let fontName = "times"; // fallback
 
   try {
     if (doc.addFileToVFS && doc.addFont) {
