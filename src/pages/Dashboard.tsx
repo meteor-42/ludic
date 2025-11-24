@@ -244,8 +244,9 @@ export default function Dashboard() {
       localStorage.setItem('bets', JSON.stringify(updatedBets));
 
       const pickLabel = pick === 'H' ? 'П1' : pick === 'D' ? 'Х' : 'П2';
+      // Если будем коэфициенты давать !
       const odd = pick === 'H' ? match.odd_home : pick === 'D' ? match.odd_draw : match.odd_away;
-      const suffix = odd != null ? ` • ${pickLabel} (${odd.toFixed(2)})` : ` • ${pickLabel}`;
+      const suffix = odd != null ? ` • ${pickLabel}` : ` • ${pickLabel}`;
       toast({
         title: `${match.home_team} — ${match.away_team}${suffix}`,
         description: 'Ваш выбор учтен. Удачи.',
