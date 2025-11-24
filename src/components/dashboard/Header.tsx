@@ -21,7 +21,7 @@ export const Header = ({ stats, statsLoading, onLogout, onChangePassword, onExpo
 
     <div className="flex items-center gap-4">
       <div className="hidden md:flex items-center gap-2">
-        <StatCard value={`${stats.liveMatches}/${stats.matches}`} label="Live" loading={statsLoading} />
+        <StatCard value={`${stats.liveMatches}`} label="Live" loading={statsLoading} />
         <StatCard value={`${stats.bets}/${stats.totalBets}`} label="Рассчитано" loading={statsLoading} />
         <StatCard value={stats.correctBets} label="Угадано" loading={statsLoading} />
         <StatCard value={`${stats.successRate}%`} label="Точность" loading={statsLoading} />
