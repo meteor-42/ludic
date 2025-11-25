@@ -227,12 +227,9 @@ sudo systemctl status pocketbase --no-pager
 
 ## 8) Важные замечания для AlmaLinux
 
-- Фронтенд уже настроен на единый базовый путь API `/api`. Nginx проксирует их на PocketBase, поэтому дополнительных правок в коде не требуется.
-- Не нужен Node/Express/PM2 в продакшене — меньше процессов и точек отказа.
-- SELinux включен по умолчанию и может блокировать Nginx. Убедитесь, что выполнили команду `setsebool -P httpd_can_network_connect 1`.
+- Фронтенд уже настроен на единый базовый путь API `/api`. Nginx проксирует их на PocketBase.
+- SELinux включен по умолчанию и может блокировать Nginx. `setsebool -P httpd_can_network_connect 1`.
 - Firewalld активен по умолчанию — не забудьте открыть порты 80 и 443.
-- В AlmaLinux нет директорий `sites-available` и `sites-enabled` для Nginx. Все конфигурации размещаются в `/etc/nginx/conf.d/`.
-
 ---
 
 ## 9) Полезные команды для AlmaLinux
