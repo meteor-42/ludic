@@ -49,12 +49,12 @@ jobs:
         port: ${{ secrets.PORT || 22 }}
         script: |
           # Создаем backup текущей версии
-          sudo mkdir -p /var/www/ludic/backups
-          if [ -d "/var/www/ludic/site" ]; then
-            sudo cp -r /var/www/ludic/site /var/www/ludic/backups/backup-$(date +%Y%m%d-%H%M%S)
+          # sudo mkdir -p /var/www/ludic/backups
+          # if [ -d "/var/www/ludic/site" ]; then
+          #  sudo cp -r /var/www/ludic/site /var/www/ludic/backups/backup-$(date +%Y%m%d-%H%M%S)
             # Оставляем только последние 5 бэкапов
-            sudo find /var/www/ludic/backups/ -type d -name "backup-*" | sort -r | tail -n +6 | sudo xargs -r rm -rf
-          fi
+          #  sudo find /var/www/ludic/backups/ -type d -name "backup-*" | sort -r | tail -n +6 | sudo xargs -r rm -rf
+          # fi
 
           # Создаем временную директорию для распаковки
           sudo mkdir -p /tmp/ludic-deploy
