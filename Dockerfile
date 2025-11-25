@@ -1,17 +1,17 @@
 FROM alpine:latest
 
-# Установка только unzip (curl не нужен)
+# Установка зависимостей
 RUN apk add --no-cache unzip
 
-# Создание пользователя
+# Создание пользователя и директорий
 RUN adduser -D -s /bin/sh -h /app pocketbase && \
     mkdir -p /app/pb_data && \
     chown -R pocketbase:pocketbase /app
 
 # Копируем локальный ZIP файл
-COPY pocketbase_0.22.18_linux_amd64.zip /tmp/pb.zip
+COPY pocketbase_0.29.2_linux_amd64.zip /tmp/pb.zip
 
-# Распаковываем PocketBase
+# Распаковываем PocketBase (без комментариев в команде!)
 RUN unzip /tmp/pb.zip -d /app/ && \
     rm /tmp/pb.zip && \
     chmod +x /app/pocketbase
@@ -23,5 +23,4 @@ USER pocketbase
 WORKDIR /app
 EXPOSE 8090
 
-ENTRYPOINT ["./pocketbase"]
-CMD ["serve", "--http=0.0.0.0:8090"]
+CMD ["./pocketbase", "serve", "--http=0.0.0.0:8090"]
