@@ -1,0 +1,23 @@
+# Сборка образа
+podman build -t pocketbase-ludic .
+
+# Проверка образа
+podman images
+
+# Создаем volume для persistent данных (опционально)
+podman volume create pb-data
+
+# Запуск контейнера
+podman run -d \
+  --name pocketbase \
+  -p 8090:8090 \
+  -v pb-data:/app/pb_data \
+  --restart unless-stopped \
+  pocketbase-ludic
+
+# Или без volume (только с данными из git)
+podman run -d \
+  --name pocketbase \
+  -p 8090:8090 \
+  --restart unless-stopped \
+  pocketbase-ludic
