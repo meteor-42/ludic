@@ -9,9 +9,10 @@
     "locking",
     "scheduler"
   ],
-  "author": "Oleg Palmieri",
+  "author": "Glab",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "pocketbase": "^0.21.0"
   },
   "engines": {
